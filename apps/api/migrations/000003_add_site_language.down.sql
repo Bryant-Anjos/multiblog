@@ -1,0 +1,2 @@
+ALTER TABLE sites
+    DROP COLUMN IF EXISTS language;

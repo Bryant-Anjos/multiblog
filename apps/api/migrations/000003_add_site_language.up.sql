@@ -1,0 +1,2 @@
+ALTER TABLE sites
+    ADD COLUMN language TEXT NOT NULL DEFAULT 'en';

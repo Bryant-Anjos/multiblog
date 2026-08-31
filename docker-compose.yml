@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: multiblog
+      POSTGRES_PASSWORD: multiblog_dev
+      POSTGRES_DB: multiblog
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgres://multiblog:multiblog_dev@postgres:5432/multiblog?sslmode=disable
+      PORT: "8080"
+      JWT_SECRET: dev-secret-change-in-production
+      CORS_ORIGIN: http://localhost:3000
+      ADMIN_PASSWORD: admin123
+    depends_on:
+      - postgres
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      API_URL: http://api:8080
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:

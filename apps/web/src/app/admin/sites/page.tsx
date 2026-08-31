@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AdminShell } from "@/components/admin/AdminShell";
+import AdminShell from "@/components/admin/AdminShell";
 import { adminFetch } from "@/lib/admin";
 import { LANGUAGES } from "@/lib/i18n";
 

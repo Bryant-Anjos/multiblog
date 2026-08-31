@@ -1,185 +1,155 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { AdminShell } from "@/components/admin/AdminShell";
+import Link from "next/link";
+import { useSite } from "@/context/SiteContext";
 import { adminFetch } from "@/lib/admin";
-import { LANGUAGES } from "@/lib/i18n";
+import { useEffect, useState } from "react";
 
-type Domain = { id: string; hostname: string; is_primary: boolean };
-type NavItem = {
+interface Domain {
   id: string;
-  label: string;
-  type: string;
-  destination: string;
-  position: number;
-  is_visible: boolean;
-};
+  hostname: string;
+  is_primary: boolean;
+}
 
-export default function SiteDetailPage() {
-  const params = useParams();
-  const id = params.id as string;
-  const [site, setSite] = useState<any>(null);
-  const [language, setLanguage] = useState("en");
+interface Post {
+  id: string;
+  status: string;
+}
+
+interface Page {
+  id: string;
+  status: string;
+}
+
+interface Story {
+  id: string;
+  title: string;
+}
+
+export default function SiteDashboard() {
+  const { site, siteId, loading, error } = useSite();
   const [domains, setDomains] = useState<Domain[]>([]);
-  const [newDomain, setNewDomain] = useState("");
-  const [navItems, setNavItems] = useState<NavItem[]>([]);
-  const [navLabel, setNavLabel] = useState("");
-  const [navType, setNavType] = useState("page");
-  const [navDest, setNavDest] = useState("/");
-
-  async function load() {
-    const siteRes = await adminFetch(`/api/admin/sites/${id}`);
-    if (siteRes.ok) {
-      const s = await siteRes.json();
-      setSite(s);
-      setLanguage(s.language || "en");
-    }
-    const domRes = await adminFetch(`/api/admin/sites/${id}/domains`);
-    if (domRes.ok) setDomains(await domRes.json());
-    const navRes = await adminFetch(`/api/admin/sites/${id}/navigation`);
-    if (navRes.ok) setNavItems(await navRes.json());
-  }
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [pages, setPages] = useState<Page[]>([]);
+  const [stories, setStories] = useState<Story[]>([]);
 
   useEffect(() => {
-    load();
-  }, [id]);
-
-  async function saveLanguage(e: React.FormEvent) {
-    e.preventDefault();
-    const res = await adminFetch(`/api/admin/sites/${id}`, {
-      method: "PUT",
-      body: JSON.stringify({ language }),
+    if (!siteId) return;
+    Promise.all([
+      adminFetch(`/api/admin/sites/${siteId}/domains`).then((r) => r.json()),
+      adminFetch(`/api/admin/sites/${siteId}/posts`).then((r) => r.json()),
+      adminFetch(`/api/admin/sites/${siteId}/pages`).then((r) => r.json()),
+      adminFetch(`/api/admin/sites/${siteId}/stories`).then((r) => r.json()),
+    ]).then(([d, p, pg, s]) => {
+      setDomains(Array.isArray(d) ? d : []);
+      setPosts(Array.isArray(p) ? p : []);
+      setPages(Array.isArray(pg) ? pg : []);
+      setStories(Array.isArray(s) ? s : []);
     });
-    if (res.ok) {
-      const s = await res.json();
-      setSite(s);
-    }
-  }
+  }, [siteId]);
 
-  async function addDomain(e: React.FormEvent) {
-    e.preventDefault();
-    const res = await adminFetch(`/api/admin/sites/${id}/domains`, {
-      method: "POST",
-      body: JSON.stringify({ hostname: newDomain }),
-    });
-    if (res.ok) {
-      setNewDomain("");
-      load();
-    }
-  }
+  if (loading) return <p style={{ color: "#999" }}>Loading...</p>;
+  if (error) return <p style={{ color: "red" }}>{error}</p>;
+  if (!site) return <p>Site not found.</p>;
 
-  async function addNavItem(e: React.FormEvent) {
-    e.preventDefault();
-    const res = await adminFetch(`/api/admin/sites/${id}/navigation`, {
-      method: "POST",
-      body: JSON.stringify({
-        label: navLabel,
-        type: navType,
-        destination: navDest,
-        position: navItems.length + 1,
-        is_visible: true,
-      }),
-    });
-    if (res.ok) {
-      setNavLabel("");
-      setNavDest("/");
-      load();
-    }
-  }
-
-  if (!site) return <AdminShell><p className="empty">Loading...</p></AdminShell>;
+  const publishedPosts = posts.filter((p) => (p.status || "").toUpperCase() === "PUBLISHED").length;
+  const draftPosts = posts.filter((p) => (p.status || "").toUpperCase() === "DRAFT").length;
+  const primaryDomain = domains.find((d) => d.is_primary)?.hostname || domains[0]?.hostname;
 
   return (
-    <AdminShell>
-      <h1>{site.name}</h1>
-      <p style={{ color: "var(--text-muted)", marginBottom: "1.5rem" }}>
-        /{site.slug} · {site.description || "No description"}
-      </p>
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem" }}>
+        <div>
+          <h1 style={{ fontSize: "1.5rem", fontWeight: 600, color: "#37352f", fontFamily: "'Lora', Georgia, serif", margin: 0 }}>
+            {site.name}
+          </h1>
+          <p style={{ color: "#7c6f64", margin: "0.25rem 0 0", fontSize: "0.9rem" }}>
+            /{site.slug} · {site.language}
+          </p>
+        </div>
+        {primaryDomain && (
+          <a
+            href={`http://${primaryDomain}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.3rem",
+              padding: "0.4rem 0.8rem",
+              background: "#fff",
+              border: "1px solid #d4a373",
+              borderRadius: "6px",
+              color: "#d4a373",
+              textDecoration: "none",
+              fontSize: "0.85rem",
+              fontWeight: 500,
+            }}
+          >
+            ↗ View site
+          </a>
+        )}
+      </div>
 
-      <h2 style={{ fontSize: "1.1rem", marginBottom: "0.75rem" }}>Language</h2>
-      <form
-        onSubmit={saveLanguage}
-        style={{ display: "flex", gap: "0.5rem", maxWidth: "420px", marginBottom: "1.5rem" }}
-      >
-        <select
-          style={{ flex: 1 }}
-          value={language}
-          onChange={(e) => setLanguage(e.target.value)}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem", marginBottom: "2rem" }}>
+        {[
+          { label: "Posts", value: posts.length, sub: `${publishedPosts} published, ${draftPosts} drafts`, href: `/admin/sites/${siteId}/posts` },
+          { label: "Pages", value: pages.length, sub: null, href: `/admin/sites/${siteId}/pages` },
+          { label: "Stories", value: stories.length, sub: null, href: `/admin/sites/${siteId}/stories` },
+          { label: "Domains", value: domains.length, sub: null, href: `/admin/sites/${siteId}/settings` },
+        ].map((card) => (
+          <Link
+            key={card.label}
+            href={card.href}
+            style={{
+              display: "block",
+              padding: "1rem",
+              background: "#fff",
+              border: "1px solid #e8e4df",
+              borderRadius: "8px",
+              textDecoration: "none",
+              transition: "border-color 0.15s",
+            }}
+          >
+            <div style={{ fontSize: "1.5rem", fontWeight: 600, color: "#37352f", fontFamily: "'Lora', Georgia, serif" }}>
+              {card.value}
+            </div>
+            <div style={{ fontSize: "0.85rem", color: "#7c6f64" }}>{card.label}</div>
+            {card.sub && <div style={{ fontSize: "0.75rem", color: "#aaa", marginTop: "0.25rem" }}>{card.sub}</div>}
+          </Link>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", gap: "0.75rem" }}>
+        <Link
+          href={`/admin/sites/${siteId}/posts/new`}
+          style={{
+            padding: "0.5rem 1rem",
+            background: "#37352f",
+            color: "#fff",
+            border: "none",
+            borderRadius: "6px",
+            textDecoration: "none",
+            fontSize: "0.9rem",
+          }}
         >
-          {LANGUAGES.map((l) => (
-            <option key={l.code} value={l.code}>
-              {l.label}
-            </option>
-          ))}
-        </select>
-        <button className="btn" type="submit">
-          Save language
-        </button>
-      </form>
-
-      <h2 style={{ fontSize: "1.1rem", marginBottom: "0.75rem" }}>Domains</h2>
-      <div className="admin-list" style={{ marginBottom: "1.5rem" }}>
-        {domains.map((d) => (
-          <div key={d.id} className="admin-list-item">
-            <div className="info">
-              <h3>{d.hostname}</h3>
-              <p>{d.is_primary ? "Primary" : "Alias"}</p>
-            </div>
-          </div>
-        ))}
+          New post
+        </Link>
+        <Link
+          href={`/admin/sites/${siteId}/pages/new`}
+          style={{
+            padding: "0.5rem 1rem",
+            background: "#fff",
+            color: "#37352f",
+            border: "1px solid #d9d5ce",
+            borderRadius: "6px",
+            textDecoration: "none",
+            fontSize: "0.9rem",
+          }}
+        >
+          New page
+        </Link>
       </div>
-
-      <form onSubmit={addDomain} style={{ display: "flex", gap: "0.5rem", maxWidth: "420px" }}>
-        <input
-          style={{ flex: 1 }}
-          placeholder="new-domain.com"
-          value={newDomain}
-          onChange={(e) => setNewDomain(e.target.value)}
-        />
-        <button className="btn" type="submit">
-          Add Domain
-        </button>
-      </form>
-
-      <h2 style={{ fontSize: "1.1rem", margin: "2rem 0 0.75rem" }}>Navigation</h2>
-      <div className="admin-list" style={{ marginBottom: "1.5rem" }}>
-        {navItems.map((n) => (
-          <div key={n.id} className="admin-list-item">
-            <div className="info">
-              <h3>{n.label}</h3>
-              <p>
-                {n.type} → {n.destination || "/"}
-              </p>
-            </div>
-          </div>
-        ))}
-        {navItems.length === 0 && <p className="empty">No navigation items.</p>}
-      </div>
-
-      <form onSubmit={addNavItem} style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", maxWidth: "560px" }}>
-        <input
-          style={{ flex: 1, minWidth: "120px" }}
-          placeholder="Label"
-          value={navLabel}
-          onChange={(e) => setNavLabel(e.target.value)}
-        />
-        <select value={navType} onChange={(e) => setNavType(e.target.value)}>
-          <option value="home">Home</option>
-          <option value="posts">Posts</option>
-          <option value="stories">Stories</option>
-          <option value="page">Page</option>
-        </select>
-        <input
-          style={{ flex: 1, minWidth: "140px" }}
-          placeholder="/destination"
-          value={navDest}
-          onChange={(e) => setNavDest(e.target.value)}
-        />
-        <button className="btn" type="submit">
-          Add Item
-        </button>
-      </form>
-    </AdminShell>
+    </div>
   );
 }

@@ -129,3 +129,14 @@ func (h *SiteHandler) AddDomain(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusCreated, domain)
 }
+
+func (h *SiteHandler) DeleteDomain(w http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["id"]
+	err := h.repo.DeleteDomain(id)
+	if err != nil {
+		writeInternalError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

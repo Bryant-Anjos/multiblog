@@ -9,8 +9,9 @@ interface Story {
   id: string;
   title: string;
   slug: string;
-  status: string;
-  created_at: string;
+  description?: string;
+  parent_story_id?: string | null;
+  relationship_type?: string | null;
 }
 
 export default function SiteStoriesPage() {
@@ -38,7 +39,7 @@ export default function SiteStoriesPage() {
     try {
       const res = await adminFetch(`/api/admin/sites/${siteId}/stories`, {
         method: "POST",
-        body: JSON.stringify({ title, slug, status: "DRAFT" }),
+        body: JSON.stringify({ title, slug }),
       });
       if (res.ok) {
         setTitle("");
@@ -50,11 +51,21 @@ export default function SiteStoriesPage() {
     }
   };
 
+  const handleDelete = async (story: Story) => {
+    if (!confirm(`Delete story "${story.title}" and all its chapters?`)) return;
+    const res = await adminFetch(`/api/admin/sites/${siteId}/stories/${story.id}`, {
+      method: "DELETE",
+    });
+    if (res.ok) fetchStories();
+  };
+
   return (
     <div>
-      <h1 style={{ fontSize: "1.3rem", fontWeight: 600, color: "#37352f", fontFamily: "'Lora', Georgia, serif", marginBottom: "1.5rem" }}>
-        Stories
-      </h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+        <h1 style={{ fontSize: "1.3rem", fontWeight: 600, color: "#37352f", fontFamily: "'Lora', Georgia, serif", margin: 0 }}>
+          Stories
+        </h1>
+      </div>
 
       <div style={{ marginBottom: "2rem", padding: "1rem", background: "#faf7f2", borderRadius: "8px" }}>
         <h2 style={{ fontSize: "0.95rem", fontWeight: 600, color: "#37352f", margin: "0 0 0.75rem" }}>New story</h2>
@@ -100,33 +111,70 @@ export default function SiteStoriesPage() {
             <tr style={{ borderBottom: "1px solid #e8e4df" }}>
               <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Title</th>
               <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Slug</th>
-              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Status</th>
+              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Type</th>
+              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Chapters</th>
+              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {stories.map((story) => (
-              <tr key={story.id} style={{ borderBottom: "1px solid #f0ece6" }}>
-                <td style={{ padding: "0.5rem" }}>{story.title}</td>
-                <td style={{ padding: "0.5rem", color: "#999", fontFamily: "monospace", fontSize: "0.85rem" }}>/{story.slug}</td>
-                <td style={{ padding: "0.5rem" }}>
-                  <span
-                    style={{
-                      padding: "0.15rem 0.5rem",
-                      borderRadius: "99px",
-                      fontSize: "0.75rem",
-                      fontWeight: 500,
-                      background: (story.status || "").toUpperCase() === "PUBLISHED" ? "#e8f5e9" : "#fff3e0",
-                      color: (story.status || "").toUpperCase() === "PUBLISHED" ? "#2e7d32" : "#e65100",
-                    }}
-                  >
-                    {story.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
+            {stories.map((story) => {
+              const type = story.parent_story_id ? (story.relationship_type || "Related") : "Main";
+              return (
+                <tr key={story.id} style={{ borderBottom: "1px solid #f0ece6" }}>
+                  <td style={{ padding: "0.5rem" }}>{story.title}</td>
+                  <td style={{ padding: "0.5rem", color: "#999", fontFamily: "monospace", fontSize: "0.85rem" }}>/{story.slug}</td>
+                  <td style={{ padding: "0.5rem" }}>
+                    <span
+                      style={{
+                        padding: "0.15rem 0.5rem",
+                        borderRadius: "99px",
+                        fontSize: "0.75rem",
+                        fontWeight: 500,
+                        background: story.parent_story_id ? "#ede7f6" : "#e3f2fd",
+                        color: story.parent_story_id ? "#5e35b1" : "#0d47a1",
+                      }}
+                    >
+                      {type}
+                    </span>
+                  </td>
+                  <td style={{ padding: "0.5rem", color: "#7c6f64", fontSize: "0.9rem" }}>
+                    <StoryCount siteId={siteId} storyId={story.id} />
+                  </td>
+                  <td style={{ padding: "0.5rem" }}>
+                    <div style={{ display: "flex", gap: "0.6rem" }}>
+                      <Link
+                        href={`/admin/sites/${siteId}/stories/${story.id}`}
+                        style={{ color: "#d4a373", textDecoration: "none", fontSize: "0.85rem" }}
+                      >
+                        Manage
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(story)}
+                        style={{ background: "none", border: "none", color: "#c0392b", cursor: "pointer", fontSize: "0.85rem", padding: 0 }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}
     </div>
   );
+}
+
+function StoryCount({ siteId, storyId }: { siteId: string | null; storyId: string }) {
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!siteId) return;
+    adminFetch(`/api/admin/sites/${siteId}/stories/${storyId}`)
+      .then((r) => r.json())
+      .then((data) => setCount(Array.isArray(data.chapters) ? data.chapters.length : 0));
+  }, [siteId, storyId]);
+
+  return <>{count === null ? "…" : count}</>;
 }

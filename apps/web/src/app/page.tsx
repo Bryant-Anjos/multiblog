@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import Link from "next/link";
+import { ArrowRight, BookOpen, FileText, PenLine } from "lucide-react";
 import { Shell } from "@/components/Shell";
 import { StoryCard } from "@/components/StoryCard";
 import {
@@ -66,11 +67,11 @@ export default async function HomePage() {
                   {readingTime(featured.content)} {t("minRead")}
                 </p>
                 <Link href={`/posts/${featured.slug}`} className="btn">
-                  {t("readArticle")} →
+                  {t("readArticle")} <ArrowRight size={16} strokeWidth={1.8} />
                 </Link>
               </div>
               <div className="featured-image" aria-hidden="true">
-                <span style={{ fontSize: "4rem", opacity: 0.4 }}>📖</span>
+                <BookOpen size={120} strokeWidth={0.5} style={{ opacity: 0.25 }} />
               </div>
             </article>
           </section>
@@ -84,7 +85,7 @@ export default async function HomePage() {
               </span>
               {recentPosts.length > 5 && (
                 <Link href="/posts" className="section-viewall">
-                  {t("viewAll")} →
+                  {t("viewAll")} <ArrowRight size={15} strokeWidth={1.8} />
                 </Link>
               )}
             </div>
@@ -92,7 +93,7 @@ export default async function HomePage() {
               {recentPosts.map((post: any) => (
                 <Link key={post.id} href={`/posts/${post.slug}`} className="post-row">
                   <span className="post-icon" aria-hidden="true">
-                    📄
+                    <FileText size={22} strokeWidth={1.4} />
                   </span>
                   <div className="post-info">
                     <h3 className="post-title">{post.title}</h3>
@@ -105,7 +106,7 @@ export default async function HomePage() {
                     </p>
                   </div>
                   <span className="post-arrow" aria-hidden="true">
-                    →
+                    <ArrowRight size={18} strokeWidth={1.6} />
                   </span>
                 </Link>
               ))}
@@ -120,7 +121,7 @@ export default async function HomePage() {
                 {t("stories")}
               </span>
               <Link href="/stories" className="section-viewall">
-                {t("viewAll")} →
+                {t("viewAll")} <ArrowRight size={15} strokeWidth={1.8} />
               </Link>
             </div>
             <div className="story-grid">
@@ -143,14 +144,14 @@ export default async function HomePage() {
                 {t("pages")}
               </span>
               <Link href="/pages" className="section-viewall">
-                {t("viewAll")} →
+                {t("viewAll")} <ArrowRight size={15} strokeWidth={1.8} />
               </Link>
             </div>
             <div className="page-grid">
               {topPages.map((page: any) => (
                 <Link key={page.id} href={`/pages/${page.slug}`} className="page-card">
                   <div className="icon" aria-hidden="true">
-                    ✎
+                    <PenLine size={24} strokeWidth={1.4} />
                   </div>
                   <h3>{page.title}</h3>
                   <p>{page.content.slice(0, 90)}...</p>

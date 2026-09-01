@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import Link from "next/link";
+import { PenLine } from "lucide-react";
 import { SiteShell } from "@/components/SiteShell";
 import { fetchPublicSite, getHost, resolveSiteLang } from "@/lib/api";
 import { translate, type Lang } from "@/lib/i18n";
@@ -25,7 +26,7 @@ export default async function PagesPage() {
             {pages.map((page: any) => (
               <Link key={page.id} href={`/pages/${page.slug}`} className="page-card">
                 <div className="icon" aria-hidden="true">
-                  ✎
+                  <PenLine size={24} strokeWidth={1.4} />
                 </div>
                 <h3>{page.title}</h3>
                 <p>{page.content.slice(0, 120)}...</p>

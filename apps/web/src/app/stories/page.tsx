@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { Sparkles } from "lucide-react";
 import { SiteShell } from "@/components/SiteShell";
 import { StoryCard } from "@/components/StoryCard";
 import { fetchPublicSite, getHost, resolveSiteLang } from "@/lib/api";
@@ -52,7 +53,7 @@ export default async function StoriesPage() {
                   key={story.id}
                   story={story}
                   lang={lang}
-                  icon="✦"
+                  icon={Sparkles}
                   fallbackLabel={t("related")}
                 />
               ))}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { BookOpen, House, LayoutGrid, NotebookPen, PenLine, Search, Sun, Moon } from "lucide-react";
 import { useSettings } from "@/context/ThemeContext";
 import { useLanguage } from "@/context/LanguageContext";
 import type { NavigationItem, Site } from "@/lib/api";
@@ -55,7 +56,7 @@ export function Sidebar({ site, navigation }: SidebarProps) {
       <div>
         <Link href="/" className="site-identity">
           <span className="book-icon" aria-hidden="true">
-            📖
+            <BookOpen size={24} strokeWidth={1.6} />
           </span>
           <h1>{site.name}</h1>
         </Link>
@@ -74,7 +75,7 @@ export function Sidebar({ site, navigation }: SidebarProps) {
                   className={`nav-link${isActive(pathname, item.destination || "/") ? " active" : ""}`}
                 >
                   <span className="icon" aria-hidden="true">
-                    {item.type === "home" ? "⌂" : "▤"}
+                    {item.type === "home" ? <House size={18} strokeWidth={1.6} /> : <LayoutGrid size={18} strokeWidth={1.6} />}
                   </span>
                   {item.label}
                 </Link>
@@ -88,7 +89,7 @@ export function Sidebar({ site, navigation }: SidebarProps) {
                   className={`nav-link${pathname === "/" ? " active" : ""}`}
                 >
                     <span className="icon" aria-hidden="true">
-                      ⌂
+                      <House size={18} strokeWidth={1.6} />
                     </span>
                     {t("home")}
                   </Link>
@@ -99,7 +100,7 @@ export function Sidebar({ site, navigation }: SidebarProps) {
                   className={`nav-link${pathname.startsWith("/posts") ? " active" : ""}`}
                 >
                   <span className="icon" aria-hidden="true">
-                    ▤
+                    <LayoutGrid size={18} strokeWidth={1.6} />
                   </span>
                   {t("blog")}
                 </Link>
@@ -120,7 +121,7 @@ export function Sidebar({ site, navigation }: SidebarProps) {
                   className={`nav-link${isActive(pathname, item.destination || "/") ? " active" : ""}`}
                 >
                   <span className="icon" aria-hidden="true">
-                    {item.type === "stories" ? "📖" : item.type === "posts" ? "◷" : "✎"}
+                    {item.type === "stories" ? <BookOpen size={18} strokeWidth={1.6} /> : item.type === "posts" ? <NotebookPen size={18} strokeWidth={1.6} /> : <PenLine size={18} strokeWidth={1.6} />}
                   </span>
                   {item.label}
                 </Link>
@@ -134,7 +135,7 @@ export function Sidebar({ site, navigation }: SidebarProps) {
         <p className="sidebar-section-label">{t("search")}</p>
         <div className="search-box">
           <span className="search-icon" aria-hidden="true">
-            🔍
+            <Search size={15} strokeWidth={1.7} />
           </span>
           <input
             type="search"
@@ -169,13 +170,13 @@ export function Sidebar({ site, navigation }: SidebarProps) {
               className={`small-btn${settings.theme === "light" ? " active" : ""}`}
               onClick={() => settings.setTheme("light")}
             >
-              ☀ {t("light")}
+              <Sun size={15} strokeWidth={1.7} /> {t("light")}
             </button>
             <button
               className={`small-btn${settings.theme === "dark" ? " active" : ""}`}
               onClick={() => settings.setTheme("dark")}
             >
-              ☾ {t("dark")}
+              <Moon size={15} strokeWidth={1.7} /> {t("dark")}
             </button>
           </div>
         </div>

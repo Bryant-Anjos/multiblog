@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 import { SiteShell } from "@/components/SiteShell";
 import { fetchPublicSite, getHost, resolveSiteLang } from "@/lib/api";
 import { translate, type Lang } from "@/lib/i18n";
@@ -84,8 +85,8 @@ export default async function StoryPage({
                             </span>
                           </div>
                           <span className="post-arrow" aria-hidden="true">
-                            →
-                          </span>
+                        <ArrowRight size={18} strokeWidth={1.6} />
+                      </span>
                         </Link>
                       </li>
                     ))}
@@ -120,7 +121,7 @@ export default async function StoryPage({
                       </span>
                     </div>
                     <span className="post-arrow" aria-hidden="true">
-                      →
+                      <ArrowRight size={18} strokeWidth={1.6} />
                     </span>
                   </Link>
                 </li>

@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { SiteShell } from "@/components/SiteShell";
 import { Prose } from "@/components/Prose";
 import { fetchPublicSite, getHost, resolveSiteLang } from "@/lib/api";
@@ -71,7 +72,7 @@ export default async function ChapterPage({
               href={`/stories/${story.slug}/chapters/${prev.slug}`}
               className="bottom-nav-item"
             >
-              <span className="label">← {t("previousChapter")}</span>
+              <span className="label"><ArrowLeft size={13} strokeWidth={1.8} /> {t("previousChapter")}</span>
               <span className="title">{prev.title}</span>
             </Link>
           ) : (
@@ -97,7 +98,7 @@ export default async function ChapterPage({
                 href={`/stories/${story.slug}/chapters/${next.slug}`}
                 className="bottom-nav-item next"
               >
-                <span className="label">{t("nextChapter")} →</span>
+                <span className="label">{t("nextChapter")} <ArrowRight size={13} strokeWidth={1.8} /></span>
                 <span className="title">{next.title}</span>
               </Link>
             )}

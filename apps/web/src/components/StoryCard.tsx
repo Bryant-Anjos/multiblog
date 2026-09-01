@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BookOpen } from "lucide-react";
 import { normalizeLang, translate, type TranslationKey } from "@/lib/i18n";
 
 interface StoryCardProps {
@@ -12,11 +13,11 @@ interface StoryCardProps {
     published_count?: number;
   };
   lang: string | undefined;
-  icon?: string;
+  icon?: React.ElementType;
   fallbackLabel: string;
 }
 
-export function StoryCard({ story, lang, icon = "📖", fallbackLabel }: StoryCardProps) {
+export function StoryCard({ story, lang, icon: Icon = BookOpen, fallbackLabel }: StoryCardProps) {
   const l = normalizeLang(lang);
   const t = (k: TranslationKey) => translate(l, k);
   const chapterCount = story.chapter_count || 0;
@@ -26,7 +27,7 @@ export function StoryCard({ story, lang, icon = "📖", fallbackLabel }: StoryCa
   return (
     <Link href={`/stories/${story.slug}`} className="story-card">
       <div className="story-icon" aria-hidden="true">
-        {icon}
+        <Icon size={28} strokeWidth={1.4} />
       </div>
       <h3>{story.title}</h3>
       {story.description && <p className="story-desc">{story.description}</p>}

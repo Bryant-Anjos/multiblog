@@ -178,9 +178,10 @@ button {
 
 .nav-link .icon {
   width: 1.1rem;
-  text-align: center;
-  font-size: 1rem;
-  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.75;
 }
 
 .nav-link:hover {
@@ -214,8 +215,9 @@ button {
   left: 0.7rem;
   top: 50%;
   transform: translateY(-50%);
+  display: flex;
+  align-items: center;
   color: var(--text-faint);
-  font-size: 0.85rem;
 }
 
 .reading-controls {
@@ -247,6 +249,9 @@ button {
   color: var(--text-muted);
   padding: 0.4rem 0.65rem;
   font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   transition: all var(--transition);
 }
 
@@ -557,7 +562,8 @@ button {
 
 .post-arrow {
   color: var(--text-faint);
-  font-size: 1.1rem;
+  display: inline-flex;
+  align-items: center;
   margin-right: 0.5rem;
 }
 
@@ -829,6 +835,9 @@ article.reading h1 {
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: var(--text-faint);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
 .bottom-nav-item .title {

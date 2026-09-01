@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Moon, Sun } from "lucide-react";
 import { useSettings } from "@/context/ThemeContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { ReadingSettingsPanel } from "./ReadingSettings";
@@ -36,7 +37,7 @@ export function TopBar({ onMenuClick, siteName }: TopBarProps) {
             onClick={() => settings.setTheme(settings.theme === "dark" ? "light" : "dark")}
             aria-label={t("toggleTheme")}
           >
-            {settings.theme === "dark" ? "☀" : "☾"}
+            {settings.theme === "dark" ? <Sun size={16} strokeWidth={1.7} /> : <Moon size={16} strokeWidth={1.7} />}
           </button>
           <button
             className="small-btn"

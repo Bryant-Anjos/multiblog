@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import Link from "next/link";
+import { ArrowRight, FileText } from "lucide-react";
 import { SiteShell } from "@/components/SiteShell";
 import { fetchPublicSite, getHost, resolveSiteLang } from "@/lib/api";
 import { formatDate, readingTime } from "@/lib/format";
@@ -26,7 +27,7 @@ export default async function PostsPage() {
             {posts.map((post: any) => (
               <Link key={post.id} href={`/posts/${post.slug}`} className="post-row">
                 <span className="post-icon" aria-hidden="true">
-                  📄
+                  <FileText size={22} strokeWidth={1.4} />
                 </span>
                 <div className="post-info">
                   <h3 className="post-title">{post.title}</h3>
@@ -37,7 +38,7 @@ export default async function PostsPage() {
                   </p>
                 </div>
                 <span className="post-arrow" aria-hidden="true">
-                  →
+                  <ArrowRight size={18} strokeWidth={1.6} />
                 </span>
               </Link>
             ))}

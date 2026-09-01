@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { SiteShell } from "@/components/SiteShell";
 import { Prose } from "@/components/Prose";
 import { fetchPublicSite, getHost, resolveSiteLang } from "@/lib/api";
@@ -50,7 +51,7 @@ export default async function PostPage({
         <nav className="bottom-nav" aria-label={t("previous")}>
           {prev ? (
             <Link href={`/posts/${prev.slug}`} className="bottom-nav-item">
-              <span className="label">← {t("previous")}</span>
+              <span className="label"><ArrowLeft size={13} strokeWidth={1.8} /> {t("previous")}</span>
               <span className="title">{prev.title}</span>
             </Link>
           ) : (
@@ -58,7 +59,7 @@ export default async function PostPage({
           )}
           {next ? (
             <Link href={`/posts/${next.slug}`} className="bottom-nav-item next">
-              <span className="label">{t("next")} →</span>
+              <span className="label">{t("next")} <ArrowRight size={13} strokeWidth={1.8} /></span>
               <span className="title">{next.title}</span>
             </Link>
           ) : (

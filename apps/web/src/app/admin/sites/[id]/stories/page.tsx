@@ -74,15 +74,18 @@ export default function SiteStoriesPage() {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
         <h1 style={{ fontSize: "1.3rem", fontWeight: 600, color: "#37352f", fontFamily: "'Lora', Georgia, serif", margin: 0 }}>
-          Stories
+          Histórias
         </h1>
       </div>
+      <p style={{ color: "#7c6f64", fontSize: "0.9rem", marginTop: 0, maxWidth: "560px" }}>
+        Histórias reúnem uma série de capítulos publicados em sequência — úteis para livros, séries ou textos longos divididos em partes.
+      </p>
 
       <div style={{ marginBottom: "2rem", padding: "1rem", background: "#faf7f2", borderRadius: "8px" }}>
-        <h2 style={{ fontSize: "0.95rem", fontWeight: 600, color: "#37352f", margin: "0 0 0.75rem" }}>New story</h2>
+        <h2 style={{ fontSize: "0.95rem", fontWeight: 600, color: "#37352f", margin: "0 0 0.75rem" }}>Nova história</h2>
         <form onSubmit={handleCreate} style={{ display: "flex", gap: "0.5rem", alignItems: "flex-end" }}>
           <div style={{ flex: 1 }}>
-            <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Title</label>
+            <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Título</label>
             <input
               value={title}
               onChange={(e) => {
@@ -94,7 +97,7 @@ export default function SiteStoriesPage() {
             />
           </div>
           <div style={{ flex: 1 }}>
-            <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Slug</label>
+            <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Endereço</label>
             <input
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
@@ -107,7 +110,7 @@ export default function SiteStoriesPage() {
             disabled={creating}
             style={{ padding: "0.4rem 0.8rem", background: "#37352f", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "0.85rem", whiteSpace: "nowrap" }}
           >
-            {creating ? "..." : "Create"}
+            {creating ? "..." : "Criar história"}
           </button>
         </form>
       </div>
@@ -116,24 +119,24 @@ export default function SiteStoriesPage() {
         <SkeletonRows rows={3} cols={5} />
       ) : stories.length === 0 ? (
         <EmptyState
-          title="No stories yet."
-          hint="Stories let you organize chapters into books, seasons, or arcs."
-          ctaLabel="Create your first story above ↑"
+          title="Nenhuma história ainda."
+          hint="Crie uma história acima para começar a escrever capítulos em sequência."
+          ctaLabel="Criar sua primeira história ↑"
         />
       ) : (
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ borderBottom: "1px solid #e8e4df" }}>
-              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Title</th>
-              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Slug</th>
-              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Type</th>
-              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Chapters</th>
-              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Actions</th>
+              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Título</th>
+              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Endereço</th>
+              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Tipo</th>
+              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Capítulos</th>
+              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Ações</th>
             </tr>
           </thead>
           <tbody>
             {stories.map((story) => {
-              const type = story.parent_story_id ? (story.relationship_type || "Related") : "Main";
+              const related = !!(story.parent_story_id);
               return (
                 <tr key={story.id} style={{ borderBottom: "1px solid #f0ece6" }}>
                   <td style={{ padding: "0.5rem" }}>{story.title}</td>
@@ -145,11 +148,11 @@ export default function SiteStoriesPage() {
                         borderRadius: "99px",
                         fontSize: "0.75rem",
                         fontWeight: 500,
-                        background: story.parent_story_id ? "#ede7f6" : "#e3f2fd",
-                        color: story.parent_story_id ? "#5e35b1" : "#0d47a1",
+                        background: related ? "#ede7f6" : "#e3f2fd",
+                        color: related ? "#5e35b1" : "#0d47a1",
                       }}
                     >
-                      {type}
+                      {related ? "Relacionada" : "Principal"}
                     </span>
                   </td>
                   <td style={{ padding: "0.5rem", color: "#7c6f64", fontSize: "0.9rem" }}>
@@ -161,13 +164,13 @@ export default function SiteStoriesPage() {
                         href={`/admin/sites/${siteId}/stories/${story.id}`}
                         style={{ color: "#d4a373", textDecoration: "none", fontSize: "0.85rem" }}
                       >
-                        Manage
+                        Gerenciar
                       </Link>
                       <button
                         onClick={() => setToDelete(story)}
                         style={{ background: "none", border: "none", color: "#c0392b", cursor: "pointer", fontSize: "0.85rem", padding: 0 }}
                       >
-                        Delete
+                        Excluir
                       </button>
                     </div>
                   </td>
@@ -180,8 +183,8 @@ export default function SiteStoriesPage() {
 
       <ConfirmDialog
         open={!!toDelete}
-        title={`Delete "${toDelete?.title}"?`}
-        body="This deletes the story and all of its chapters. This cannot be undone."
+        title={`Excluir "${toDelete?.title}"?`}
+        body="Isso exclui a história e todos os seus capítulos. Esta ação não pode ser desfeita."
         busy={deleting}
         onConfirm={confirmDelete}
         onCancel={() => setToDelete(null)}

@@ -27,11 +27,13 @@ export default function SitePagesPage() {
       .finally(() => setLoading(false));
   }, [siteId]);
 
+  const statusLabel = (s: string) => (s || "").toUpperCase() === "PUBLISHED" ? "Publicado" : "Rascunho";
+
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
         <h1 style={{ fontSize: "1.3rem", fontWeight: 600, color: "#37352f", fontFamily: "'Lora', Georgia, serif", margin: 0 }}>
-          Pages
+          Páginas
         </h1>
         <Link
           href={`/admin/sites/${siteId}/pages/new`}
@@ -45,27 +47,30 @@ export default function SitePagesPage() {
             fontSize: "0.85rem",
           }}
         >
-          New page
+          Nova página
         </Link>
       </div>
+      <p style={{ color: "#7c6f64", fontSize: "0.9rem", marginTop: 0, maxWidth: "560px" }}>
+        Páginas são textos fixos, como &quot;Sobre&quot; ou &quot;Contato&quot;, que ficam acessíveis para sempre no site.
+      </p>
 
       {loading ? (
         <SkeletonRows rows={4} cols={4} />
       ) : pages.length === 0 ? (
         <EmptyState
-          title="No pages yet."
-          hint="Create static pages like About or Contact."
+          title="Nenhuma página ainda."
+          hint="Crie páginas como &quot;Sobre&quot; ou &quot;Contato&quot; para o seu site."
           ctaHref={`/admin/sites/${siteId}/pages/new`}
-          ctaLabel="Create your first page"
+          ctaLabel="Criar sua primeira página"
         />
       ) : (
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ borderBottom: "1px solid #e8e4df" }}>
-              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Title</th>
-              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Slug</th>
-              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Status</th>
-              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Actions</th>
+              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Título</th>
+              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Endereço</th>
+              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Situação</th>
+              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -84,7 +89,7 @@ export default function SitePagesPage() {
                       color: (page.status || "").toUpperCase() === "PUBLISHED" ? "#2e7d32" : "#e65100",
                     }}
                   >
-                    {page.status}
+                    {statusLabel(page.status)}
                   </span>
                 </td>
                 <td style={{ padding: "0.5rem" }}>
@@ -92,7 +97,7 @@ export default function SitePagesPage() {
                     href={`/admin/sites/${siteId}/pages/${page.id}`}
                     style={{ color: "#d4a373", textDecoration: "none", fontSize: "0.85rem" }}
                   >
-                    Edit
+                    Editar
                   </Link>
                 </td>
               </tr>

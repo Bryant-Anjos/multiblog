@@ -87,6 +87,8 @@ export default function SitePostsPage() {
     }
   };
 
+  const statusLabel = (s: string) => (s || "").toUpperCase() === "PUBLISHED" ? "Publicado" : "Rascunho";
+
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
@@ -105,7 +107,7 @@ export default function SitePostsPage() {
             fontSize: "0.85rem",
           }}
         >
-          New post
+          Novo post
         </Link>
       </div>
 
@@ -123,23 +125,23 @@ export default function SitePostsPage() {
           }}
         >
           <span style={{ fontSize: "0.85rem", color: "#7c6f64", marginRight: "0.5rem" }}>
-            {selected.size} selected
+            {selected.size} selecionado{selected.size === 1 ? "" : "s"}
           </span>
           <button onClick={() => runBulk(true)} disabled={busy} style={toolbarBtn("#2e7d32")}>
-            {busy ? "..." : "Publish"}
+            {busy ? "..." : "Publicar"}
           </button>
           <button onClick={() => runBulk(false)} disabled={busy} style={toolbarBtn("#e65100")}>
-            {busy ? "..." : "Unpublish"}
+            {busy ? "..." : "Reverter para rascunho"}
           </button>
           <button onClick={() => setConfirmDelete(true)} disabled={busy} style={toolbarBtn("#c0392b")}>
-            Delete
+            Excluir
           </button>
           <button
             onClick={() => setSelected(new Set())}
             disabled={busy}
             style={{ background: "none", border: "none", color: "#7c6f64", cursor: "pointer", fontSize: "0.85rem", marginLeft: "auto", padding: 0 }}
           >
-            Clear selection
+            Limpar seleção
           </button>
         </div>
       )}
@@ -148,10 +150,10 @@ export default function SitePostsPage() {
         <SkeletonRows rows={4} cols={4} />
       ) : posts.length === 0 ? (
         <EmptyState
-          title="No posts yet."
-          hint="Publish your first article to appear on the site."
+          title="Nenhum post ainda."
+          hint="Publique seu primeiro post para ele aparecer no site."
           ctaHref={`/admin/sites/${siteId}/posts/new`}
-          ctaLabel="Create your first post"
+          ctaLabel="Criar seu primeiro post"
         />
       ) : (
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -165,10 +167,10 @@ export default function SitePostsPage() {
                   style={{ width: "auto", cursor: "pointer" }}
                 />
               </th>
-              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Title</th>
-              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Slug</th>
-              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Status</th>
-              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Actions</th>
+              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Título</th>
+              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Endereço</th>
+              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Situação</th>
+              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -198,7 +200,7 @@ export default function SitePostsPage() {
                       color: (post.status || "").toUpperCase() === "PUBLISHED" ? "#2e7d32" : "#e65100",
                     }}
                   >
-                    {post.status}
+                    {statusLabel(post.status)}
                   </span>
                 </td>
                 <td style={{ padding: "0.5rem" }}>
@@ -206,7 +208,7 @@ export default function SitePostsPage() {
                     href={`/admin/sites/${siteId}/posts/${post.id}`}
                     style={{ color: "#d4a373", textDecoration: "none", fontSize: "0.85rem" }}
                   >
-                    Edit
+                    Editar
                   </Link>
                 </td>
               </tr>
@@ -217,10 +219,10 @@ export default function SitePostsPage() {
 
       <ConfirmDialog
         open={confirmDelete}
-        title={`Delete ${selected.size} post${selected.size === 1 ? "" : "s"}?`}
-        body="This permanently removes the selected posts. This cannot be undone."
+        title={`Excluir ${selected.size} post${selected.size === 1 ? "" : "s"}?`}
+        body="Isso remove permanentemente os posts selecionados. Esta ação não pode ser desfeita."
         busy={busy}
-        confirmLabel={busy ? "..." : "Delete"}
+        confirmLabel={busy ? "..." : "Excluir"}
         onConfirm={runBulkDelete}
         onCancel={() => setConfirmDelete(false)}
       />

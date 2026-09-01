@@ -50,11 +50,11 @@ export default function NewPostPage() {
   return (
     <div>
       <h1 style={{ fontSize: "1.3rem", fontWeight: 600, color: "#37352f", fontFamily: "'Lora', Georgia, serif", marginBottom: "1.5rem" }}>
-        New post
+        Novo post
       </h1>
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem", maxWidth: "640px" }}>
         <div>
-          <label style={{ display: "block", fontSize: "0.85rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Title *</label>
+          <label style={{ display: "block", fontSize: "0.85rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Título *</label>
           <input
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
@@ -63,21 +63,27 @@ export default function NewPostPage() {
           />
         </div>
         <div>
-          <label style={{ display: "block", fontSize: "0.85rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Slug *</label>
+          <label style={{ display: "block", fontSize: "0.85rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Endereço *</label>
           <input
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
             required
             style={{ width: "100%", padding: "0.5rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.9rem", fontFamily: "monospace" }}
           />
+          <p style={{ margin: "0.25rem 0 0", fontSize: "0.78rem", color: "#7c6f64" }}>
+            Parte do link do post, em minúsculas e sem espaços. É preenchido automaticamente a partir do título (ex.: <code style={{ background: "#f0ece6", padding: "0 0.25rem", borderRadius: "3px" }}>meu-primeiro-post</code>).
+          </p>
         </div>
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
-            <label style={{ fontSize: "0.85rem", color: "#7c6f64" }}>Content *</label>
+            <label style={{ fontSize: "0.85rem", color: "#7c6f64" }}>Conteúdo *</label>
             <button type="button" onClick={() => setPreview((p) => !p)} style={{ background: "none", border: "none", color: "#d4a373", cursor: "pointer", fontSize: "0.8rem", padding: 0 }}>
-              {preview ? "Edit" : "Preview"}
+              {preview ? "Editar" : "Pré-visualizar"}
             </button>
           </div>
+          <p style={{ margin: "0 0 0.25rem", fontSize: "0.78rem", color: "#7c6f64" }}>
+            Escreva em Markdown: use os botões para formatar ou escreva a sintaxe diretamente (ex.: **negrito**, ## Título, *[link](https://)*).
+          </p>
           {preview ? (
             <MarkdownPreview content={content} />
           ) : (
@@ -111,7 +117,7 @@ export default function NewPostPage() {
               fontSize: "0.9rem",
             }}
           >
-            {saving ? "Saving..." : "Create post"}
+            {saving ? "Salvando..." : "Criar post"}
           </button>
         </div>
       </form>

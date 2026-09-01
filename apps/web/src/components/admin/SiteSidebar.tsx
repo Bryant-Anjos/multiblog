@@ -5,12 +5,12 @@ import { usePathname } from "next/navigation";
 import { useSite } from "@/context/SiteContext";
 
 const SITE_NAV = [
-  { label: "Dashboard", segment: "" },
+  { label: "Painel", segment: "" },
   { label: "Posts", segment: "posts" },
-  { label: "Pages", segment: "pages" },
-  { label: "Stories", segment: "stories" },
-  { label: "Navigation", segment: "navigation" },
-  { label: "Settings", segment: "settings" },
+  { label: "Páginas", segment: "pages" },
+  { label: "Histórias", segment: "stories" },
+  { label: "Menu", segment: "navigation" },
+  { label: "Configurações", segment: "settings" },
 ];
 
 export default function SiteSidebar() {
@@ -40,7 +40,7 @@ export default function SiteSidebar() {
             textDecoration: "none",
           }}
         >
-          ← All Sites
+          ← Todos os sites
         </Link>
         <h3
           style={{

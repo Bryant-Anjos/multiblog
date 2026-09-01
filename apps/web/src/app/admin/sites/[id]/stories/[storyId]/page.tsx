@@ -78,23 +78,23 @@ export default function StoryDetailPage() {
         method: "PUT",
         body: JSON.stringify({ title, slug, description }),
       });
-      if (res.ok) setMessage("Story saved.");
-      else setMessage("Error saving story.");
+      if (res.ok) setMessage("Alterações da história salvas.");
+      else setMessage("Erro ao salvar. Tente novamente.");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteStory = async () => {
-    if (!confirm("Delete this story and all its chapters?")) return;
+    if (!confirm("Excluir esta história e todos os seus capítulos?")) return;
     const res = await adminFetch(`/api/admin/sites/${siteId}/stories/${storyId}`, {
       method: "DELETE",
     });
     if (res.ok) router.push(`/admin/sites/${siteId}/stories`);
   };
 
-  if (loading) return <p style={{ color: "#999" }}>Loading...</p>;
-  if (!story) return <p style={{ color: "#c0392b" }}>Story not found.</p>;
+  if (loading) return <p style={{ color: "#999" }}>Carregando...</p>;
+  if (!story) return <p style={{ color: "#c0392b" }}>História não encontrada.</p>;
 
   const ungrouped = chapters.filter((c) => !c.group_id);
 
@@ -102,7 +102,7 @@ export default function StoryDetailPage() {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
         <h1 style={{ fontSize: "1.3rem", fontWeight: 600, color: "#37352f", fontFamily: "'Lora', Georgia, serif", margin: 0 }}>
-          Story: {story.title}
+          História: {story.title}
         </h1>
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <button
@@ -110,31 +110,32 @@ export default function StoryDetailPage() {
             disabled={saving}
             style={{ padding: "0.4rem 0.8rem", background: "#37352f", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "0.85rem" }}
           >
-            {saving ? "Saving..." : "Save story"}
+            {saving ? "Salvando..." : "Salvar história"}
           </button>
           <button onClick={handleDeleteStory} style={{ padding: "0.4rem 0.8rem", background: "#fff", color: "#c0392b", border: "1px solid #e8e4df", borderRadius: "6px", cursor: "pointer", fontSize: "0.85rem" }}>
-            Delete
+            Excluir
           </button>
         </div>
       </div>
 
       {message && (
-        <p style={{ padding: "0.5rem 0.75rem", background: message.includes("saved") ? "#e8f5e9" : "#ffebee", borderRadius: "4px", fontSize: "0.85rem", marginBottom: "1rem" }}>
+        <p style={{ padding: "0.5rem 0.75rem", background: message === "Alterações da história salvas." ? "#e8f5e9" : "#ffebee", borderRadius: "4px", fontSize: "0.85rem", marginBottom: "1rem", color: message === "Erro ao salvar. Tente novamente." ? "#c0392b" : "#2e7d32" }}>
           {message}
         </p>
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem", maxWidth: "640px", marginBottom: "2rem" }}>
         <div>
-          <label style={{ display: "block", fontSize: "0.85rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Title</label>
+          <label style={{ display: "block", fontSize: "0.85rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Título</label>
           <input value={title} onChange={(e) => setTitle(e.target.value)} style={{ width: "100%", padding: "0.5rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.9rem" }} />
         </div>
         <div>
-          <label style={{ display: "block", fontSize: "0.85rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Slug</label>
+          <label style={{ display: "block", fontSize: "0.85rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Endereço</label>
           <input value={slug} onChange={(e) => setSlug(e.target.value)} style={{ width: "100%", padding: "0.5rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.9rem", fontFamily: "monospace" }} />
+          <p style={{ margin: "0.25rem 0 0", fontSize: "0.78rem", color: "#7c6f64" }}>Parte do link da história, em minúsculas e sem espaços.</p>
         </div>
         <div>
-          <label style={{ display: "block", fontSize: "0.85rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Description</label>
+          <label style={{ display: "block", fontSize: "0.85rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Descrição</label>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} style={{ width: "100%", padding: "0.5rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.9rem", resize: "vertical" }} />
         </div>
       </div>
@@ -183,12 +184,15 @@ function GroupsSection({
 
   return (
     <div style={{ marginBottom: "2.5rem" }}>
-      <h2 style={{ fontSize: "1.1rem", fontWeight: 600, color: "#37352f", fontFamily: "'Lora', Georgia, serif", marginBottom: "1rem" }}>
-        Groups (Books / Seasons / Arcs)
+      <h2 style={{ fontSize: "1.1rem", fontWeight: 600, color: "#37352f", fontFamily: "'Lora', Georgia, serif", marginBottom: "0.25rem" }}>
+        Seções (Livros / Temporadas / Arcos)
       </h2>
+      <p style={{ margin: "0 0 1rem", fontSize: "0.85rem", color: "#7c6f64", maxWidth: "640px" }}>
+        Use seções para organizar os capítulos em partes — por exemplo, cada livro, temporada ou arco de uma história.
+      </p>
       <form onSubmit={addGroup} style={{ display: "flex", gap: "0.5rem", alignItems: "flex-end", marginBottom: "1rem", maxWidth: "640px" }}>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Title</label>
+          <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Título</label>
           <input
             value={title}
             onChange={(e) => {
@@ -200,15 +204,15 @@ function GroupsSection({
           />
         </div>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Slug</label>
+          <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Endereço</label>
           <input value={slug} onChange={(e) => setSlug(e.target.value)} required style={{ width: "100%", padding: "0.4rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.85rem", fontFamily: "monospace" }} />
         </div>
         <button type="submit" disabled={creating} style={{ padding: "0.4rem 0.8rem", background: "#37352f", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "0.85rem", whiteSpace: "nowrap" }}>
-          {creating ? "..." : "Add group"}
+          {creating ? "..." : "Adicionar seção"}
         </button>
       </form>
       {groups.length === 0 ? (
-        <p style={{ color: "#999", fontSize: "0.9rem" }}>No groups yet.</p>
+        <p style={{ color: "#999", fontSize: "0.9rem" }}>Nenhuma seção ainda.</p>
       ) : (
         <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
           {groups.map((g) => (
@@ -320,7 +324,7 @@ function ChaptersSection({
   };
 
   const deleteChapter = async (c: Chapter) => {
-    if (!confirm(`Delete chapter "${c.title}"?`)) return;
+    if (!confirm(`Excluir o capítulo "${c.title}"?`)) return;
     const res = await adminFetch(`/api/admin/sites/${siteId}/stories/${storyId}/chapters/${c.id}`, {
       method: "DELETE",
     });
@@ -369,10 +373,10 @@ function ChaptersSection({
         setMoveGroup("");
         onChanged();
       } else {
-        setGroupMoveError("Failed to move one or more chapters. Please try again.");
+        setGroupMoveError("Não foi possível mover um ou mais capítulos. Tente novamente.");
       }
     } catch {
-      setGroupMoveError("Failed to move chapters. Please try again.");
+      setGroupMoveError("Não foi possível mover os capítulos. Tente novamente.");
     } finally {
       setMoving(false);
     }
@@ -406,7 +410,7 @@ function ChaptersSection({
           checked={selected.has(c.id)}
           onChange={() => toggleSelect(c.id)}
           style={{ width: "auto", cursor: "pointer" }}
-          title="Select for bulk move"
+          title="Selecionar para mover em massa"
         />
         <div>
           <div style={{ fontWeight: 500, color: "#37352f" }}>{c.title}</div>
@@ -428,13 +432,13 @@ function ChaptersSection({
             color: (c.status || "").toUpperCase() === "PUBLISHED" ? "#2e7d32" : "#e65100",
           }}
         >
-          {c.status}
+          {(c.status || "").toUpperCase() === "PUBLISHED" ? "Publicado" : "Rascunho"}
         </span>
         <button onClick={() => startEdit(c)} style={{ background: "none", border: "none", color: "#d4a373", cursor: "pointer", fontSize: "0.85rem", padding: 0 }}>
-          Edit
+          Editar
         </button>
         <button onClick={() => deleteChapter(c)} style={{ background: "none", border: "none", color: "#c0392b", cursor: "pointer", fontSize: "0.85rem", padding: 0 }}>
-          Delete
+          Excluir
         </button>
       </div>
     </div>
@@ -445,15 +449,15 @@ function ChaptersSection({
   return (
     <div style={{ maxWidth: "720px" }}>
       <h2 style={{ fontSize: "1.1rem", fontWeight: 600, color: "#37352f", fontFamily: "'Lora', Georgia, serif", marginBottom: "1rem" }}>
-        Chapters
+        Capítulos
       </h2>
 
       <div style={{ padding: "1rem", background: "#faf7f2", borderRadius: "8px", marginBottom: "1.5rem" }}>
-        <h3 style={{ fontSize: "0.95rem", fontWeight: 600, color: "#37352f", margin: "0 0 0.75rem" }}>New chapter</h3>
+        <h3 style={{ fontSize: "0.95rem", fontWeight: 600, color: "#37352f", margin: "0 0 0.75rem" }}>Novo capítulo</h3>
         <form onSubmit={addChapter} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <div style={{ flex: 1 }}>
-              <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Title</label>
+              <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Título</label>
               <input
                 value={title}
                 onChange={(e) => {
@@ -465,14 +469,14 @@ function ChaptersSection({
               />
             </div>
             <div style={{ flex: 1 }}>
-              <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Slug</label>
+              <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Endereço</label>
               <input value={slug} onChange={(e) => setSlug(e.target.value)} required style={{ width: "100%", padding: "0.4rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.85rem", fontFamily: "monospace" }} />
             </div>
           </div>
           <div>
-            <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Group (optional)</label>
+            <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Seção (opcional)</label>
             <select value={groupId} onChange={(e) => setGroupId(e.target.value)} style={{ width: "100%", padding: "0.4rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.85rem" }}>
-              <option value="">— No group —</option>
+              <option value="">— Sem seção —</option>
               {groups.map((g) => (
                 <option key={g.id} value={g.id}>{g.title}</option>
               ))}
@@ -480,9 +484,9 @@ function ChaptersSection({
           </div>
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
-              <label style={{ fontSize: "0.8rem", color: "#7c6f64" }}>Content (Markdown)</label>
+              <label style={{ fontSize: "0.8rem", color: "#7c6f64" }}>Conteúdo (Markdown)</label>
               <button onClick={() => setPreview((p) => !p)} style={{ background: "none", border: "none", color: "#d4a373", cursor: "pointer", fontSize: "0.8rem", padding: 0 }}>
-                {preview ? "Edit" : "Preview"}
+                {preview ? "Editar" : "Pré-visualizar"}
               </button>
             </div>
             {preview ? (
@@ -499,11 +503,11 @@ function ChaptersSection({
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <button type="submit" disabled={creating} style={{ padding: "0.4rem 0.8rem", background: "#37352f", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "0.85rem" }}>
-              {creating ? "..." : publish ? "Add & Publish" : "Add chapter"}
+              {creating ? "..." : publish ? "Adicionar e publicar" : "Adicionar capítulo"}
             </button>
             <label style={{ fontSize: "0.85rem", color: "#7c6f64", display: "flex", alignItems: "center", gap: "0.3rem" }}>
               <input type="checkbox" checked={publish} onChange={(e) => setPublish(e.target.checked)} style={{ width: "auto" }} />
-              Publish
+              Publicar
             </label>
           </div>
         </form>
@@ -513,22 +517,22 @@ function ChaptersSection({
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
           <label style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.8rem", color: "#7c6f64", cursor: "pointer" }}>
             <input type="checkbox" checked={selected.size === chapters.length} onChange={selectAll} style={{ width: "auto", cursor: "pointer" }} />
-            Select all
+            Selecionar tudo
           </label>
           {selected.size > 0 && (
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0.75rem", background: "#faf7f2", border: "1px solid #e8e4df", borderRadius: "8px", flexWrap: "wrap" }}>
-              <span style={{ fontSize: "0.85rem", color: "#7c6f64" }}>{selected.size} selected</span>
+              <span style={{ fontSize: "0.85rem", color: "#7c6f64" }}>{selected.size} selecionado(s)</span>
               <select value={moveGroup} onChange={(e) => setMoveGroup(e.target.value)} disabled={moving} style={{ padding: "0.3rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.8rem" }}>
-                <option value="">— No group —</option>
+                <option value="">— Sem seção —</option>
                 {groups.map((g) => (
                   <option key={g.id} value={g.id}>{g.title}</option>
                 ))}
               </select>
               <button onClick={applyBulkMove} disabled={moving || selected.size === 0} style={{ padding: "0.3rem 0.7rem", background: "#37352f", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
-                {moving ? "..." : "Move"}
+                {moving ? "..." : "Mover"}
               </button>
               <button onClick={clearSelection} disabled={moving} style={{ background: "none", border: "none", color: "#7c6f64", cursor: "pointer", fontSize: "0.8rem", padding: 0 }}>
-                Clear
+                Limpar
               </button>
             </div>
           )}
@@ -549,35 +553,35 @@ function ChaptersSection({
 
       {ungrouped.length > 0 && (
         <div style={{ marginBottom: "1.25rem" }}>
-          <p style={{ fontWeight: 600, marginBottom: "0.5rem", color: "#7c6f64" }}>Ungrouped</p>
+          <p style={{ fontWeight: 600, marginBottom: "0.5rem", color: "#7c6f64" }}>Sem seção</p>
           {ungrouped.map((c, i) => renderChapter(c, ungrouped, i))}
         </div>
       )}
 
-      {chapters.length === 0 && <p style={{ color: "#999", fontSize: "0.9rem" }}>No chapters yet.</p>}
+      {chapters.length === 0 && <p style={{ color: "#999", fontSize: "0.9rem" }}>Nenhum capítulo ainda.</p>}
 
       {editing && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
           <div style={{ background: "#fff", borderRadius: "12px", padding: "1.5rem", maxWidth: "560px", width: "90%", boxShadow: "0 10px 30px rgba(0,0,0,0.15)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <h3 style={{ fontSize: "1.05rem", fontWeight: 600, color: "#37352f", fontFamily: "'Lora', Georgia, serif", margin: 0 }}>Edit chapter</h3>
+              <h3 style={{ fontSize: "1.05rem", fontWeight: 600, color: "#37352f", fontFamily: "'Lora', Georgia, serif", margin: 0 }}>Editar capítulo</h3>
               <button onClick={() => setEditing(null)} style={{ background: "none", border: "none", color: "#999", cursor: "pointer", fontSize: "1.2rem", lineHeight: 1 }}>×</button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
               <div style={{ display: "flex", gap: "0.5rem" }}>
                 <div style={{ flex: 1 }}>
-                  <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Title</label>
+                  <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Título</label>
                   <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} style={{ width: "100%", padding: "0.45rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.85rem" }} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Slug</label>
+                  <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Endereço</label>
                   <input value={editSlug} onChange={(e) => setEditSlug(e.target.value)} style={{ width: "100%", padding: "0.45rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.85rem", fontFamily: "monospace" }} />
                 </div>
               </div>
               <div>
-                <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Group</label>
+                <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Seção</label>
                 <select value={editGroup} onChange={(e) => setEditGroup(e.target.value)} style={{ width: "100%", padding: "0.45rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.85rem" }}>
-                  <option value="">— No group —</option>
+                  <option value="">— Sem seção —</option>
                   {groups.map((g) => (
                     <option key={g.id} value={g.id}>{g.title}</option>
                   ))}
@@ -585,9 +589,9 @@ function ChaptersSection({
               </div>
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
-                  <label style={{ fontSize: "0.8rem", color: "#7c6f64" }}>Content</label>
+                  <label style={{ fontSize: "0.8rem", color: "#7c6f64" }}>Conteúdo</label>
                   <button onClick={() => setEditPreview((p) => !p)} style={{ background: "none", border: "none", color: "#d4a373", cursor: "pointer", fontSize: "0.8rem", padding: 0 }}>
-                    {editPreview ? "Edit" : "Preview"}
+                    {editPreview ? "Editar" : "Pré-visualizar"}
                   </button>
                 </div>
                 {editPreview ? (
@@ -604,10 +608,10 @@ function ChaptersSection({
               </div>
               <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
                 <button onClick={() => setEditing(null)} style={{ padding: "0.4rem 0.8rem", background: "#fff", color: "#37352f", border: "1px solid #d9d5ce", borderRadius: "6px", cursor: "pointer", fontSize: "0.85rem" }}>
-                  Cancel
+                  Cancelar
                 </button>
                 <button onClick={saveEdit} disabled={editSaving} style={{ padding: "0.4rem 0.8rem", background: "#37352f", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "0.85rem" }}>
-                  {editSaving ? "Saving..." : "Save"}
+                  {editSaving ? "Salvando..." : "Salvar"}
                 </button>
               </div>
             </div>

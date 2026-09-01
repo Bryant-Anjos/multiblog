@@ -10,7 +10,7 @@ export default function Breadcrumb() {
   if (segments.length < 2 || segments[0] !== "admin") return null;
 
   const crumbs: { label: string; href: string }[] = [
-    { label: "Admin", href: "/admin" },
+    { label: "Administração", href: "/admin" },
   ];
 
   let href = "";
@@ -25,15 +25,15 @@ export default function Breadcrumb() {
         : segment === "posts"
           ? "Posts"
           : segment === "pages"
-            ? "Pages"
+            ? "Páginas"
             : segment === "stories"
-              ? "Stories"
+              ? "Histórias"
               : segment === "navigation"
-                ? "Navigation"
+                ? "Menu"
                 : segment === "settings"
-                  ? "Settings"
+                  ? "Configurações"
                   : segment === "new"
-                    ? "New"
+                    ? "Novo"
                     : null;
 
     if (label) {

@@ -48,13 +48,15 @@ export default function SiteDashboard() {
     });
   }, [siteId]);
 
-  if (loading) return <p style={{ color: "#999" }}>Loading...</p>;
+  if (loading) return <p style={{ color: "#999" }}>Carregando...</p>;
   if (error) return <p style={{ color: "red" }}>{error}</p>;
-  if (!site) return <p>Site not found.</p>;
+  if (!site) return <p>Site não encontrado.</p>;
 
   const publishedPosts = posts.filter((p) => (p.status || "").toUpperCase() === "PUBLISHED").length;
   const draftPosts = posts.filter((p) => (p.status || "").toUpperCase() === "DRAFT").length;
   const primaryDomain = domains.find((d) => d.is_primary)?.hostname || domains[0]?.hostname;
+
+  const langLabel = site.language === "pt-BR" ? "Português (Brasil)" : site.language === "en" ? "Inglês" : site.language;
 
   return (
     <div>
@@ -64,7 +66,7 @@ export default function SiteDashboard() {
             {site.name}
           </h1>
           <p style={{ color: "#7c6f64", margin: "0.25rem 0 0", fontSize: "0.9rem" }}>
-            /{site.slug} · {site.language}
+            /{site.slug} · {langLabel}
           </p>
         </div>
         {primaryDomain && (
@@ -86,17 +88,17 @@ export default function SiteDashboard() {
               fontWeight: 500,
             }}
           >
-            ↗ View site
+            ↗ Ver site
           </a>
         )}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem", marginBottom: "2rem" }}>
         {[
-          { label: "Posts", value: posts.length, sub: `${publishedPosts} published, ${draftPosts} drafts`, href: `/admin/sites/${siteId}/posts` },
-          { label: "Pages", value: pages.length, sub: null, href: `/admin/sites/${siteId}/pages` },
-          { label: "Stories", value: stories.length, sub: null, href: `/admin/sites/${siteId}/stories` },
-          { label: "Domains", value: domains.length, sub: null, href: `/admin/sites/${siteId}/settings` },
+          { label: "Posts", value: posts.length, sub: `${publishedPosts} publicados, ${draftPosts} rascunhos`, href: `/admin/sites/${siteId}/posts` },
+          { label: "Páginas", value: pages.length, sub: null, href: `/admin/sites/${siteId}/pages` },
+          { label: "Histórias", value: stories.length, sub: null, href: `/admin/sites/${siteId}/stories` },
+          { label: "Endereços", value: domains.length, sub: null, href: `/admin/sites/${siteId}/settings` },
         ].map((card) => (
           <Link
             key={card.label}
@@ -133,7 +135,7 @@ export default function SiteDashboard() {
             fontSize: "0.9rem",
           }}
         >
-          New post
+          Novo post
         </Link>
         <Link
           href={`/admin/sites/${siteId}/pages/new`}
@@ -147,7 +149,21 @@ export default function SiteDashboard() {
             fontSize: "0.9rem",
           }}
         >
-          New page
+          Nova página
+        </Link>
+        <Link
+          href={`/admin/sites/${siteId}/stories`}
+          style={{
+            padding: "0.5rem 1rem",
+            background: "#fff",
+            color: "#37352f",
+            border: "1px solid #d9d5ce",
+            borderRadius: "6px",
+            textDecoration: "none",
+            fontSize: "0.9rem",
+          }}
+        >
+          Nova história
         </Link>
       </div>
     </div>

@@ -8,15 +8,16 @@ type InsertDef = {
   before: string;
   after: string;
   placeholder?: string;
+  style?: { fontWeight?: number; fontStyle?: string };
 };
 
 const items: InsertDef[] = [
-  { label: "B", title: "Bold", before: "**", after: "**", placeholder: "bold text" },
-  { label: "I", title: "Italic", before: "_", after: "_", placeholder: "italic text" },
-  { label: "H2", title: "Heading", before: "## ", after: "", placeholder: "Heading" },
-  { label: "•", title: "List", before: "- ", after: "", placeholder: "item" },
-  { label: "🔗", title: "Link", before: "[", after: "](https://)", placeholder: "link text" },
-  { label: "`", title: "Code", before: "`", after: "`", placeholder: "code" },
+  { label: "B", title: "Negrito", before: "**", after: "**", placeholder: "texto em negrito", style: { fontWeight: 700 } },
+  { label: "I", title: "Itálico", before: "_", after: "_", placeholder: "texto em itálico", style: { fontStyle: "italic" } },
+  { label: "H2", title: "Título", before: "## ", after: "", placeholder: "Título" },
+  { label: "•", title: "Lista", before: "- ", after: "", placeholder: "item da lista" },
+  { label: "🔗", title: "Link", before: "[", after: "](https://)", placeholder: "texto do link" },
+  { label: "`", title: "Código", before: "`", after: "`", placeholder: "código" },
 ];
 
 function insert(
@@ -88,7 +89,8 @@ export function MarkdownToolbar({
             borderRadius: "4px",
             cursor: "pointer",
             fontSize: "0.8rem",
-            fontWeight: it.title === "Bold" ? 700 : it.title === "Italic" ? "italic" : 400,
+            fontWeight: it.style?.fontWeight ?? 400,
+            fontStyle: it.style?.fontStyle ?? "normal",
             color: "#37352f",
           }}
         >

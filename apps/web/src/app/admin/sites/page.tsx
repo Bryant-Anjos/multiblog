@@ -6,6 +6,11 @@ import AdminShell from "@/components/admin/AdminShell";
 import { adminFetch } from "@/lib/admin";
 import { LANGUAGES } from "@/lib/i18n";
 
+const LANG_LABELS: Record<string, string> = {
+  en: "Inglês",
+  "pt-BR": "Português (Brasil)",
+};
+
 type Site = {
   id: string;
   name: string;
@@ -20,7 +25,7 @@ export default function SitesPage() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
-  const [language, setLanguage] = useState("en");
+  const [language, setLanguage] = useState("pt-BR");
   const [domains, setDomains] = useState("");
 
   async function load() {
@@ -48,7 +53,7 @@ export default function SitesPage() {
       setName("");
       setSlug("");
       setDescription("");
-      setLanguage("en");
+      setLanguage("pt-BR");
       setDomains("");
       setShowForm(false);
       load();
@@ -60,48 +65,59 @@ export default function SitesPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1>Sites</h1>
         <button className="btn" onClick={() => setShowForm((s) => !s)}>
-          {showForm ? "Cancel" : "+ New Site"}
+          {showForm ? "Cancelar" : "+ Novo site"}
         </button>
       </div>
 
       {showForm && (
         <form className="admin-form" onSubmit={create} style={{ marginBottom: "2rem" }}>
+          <p style={{ color: "#7c6f64", fontSize: "0.9rem", marginTop: 0 }}>
+            Um site é um blog independente, com seus próprios textos, páginas e endereço. Você pode criar quantos quiser.
+          </p>
           <div className="form-field">
-            <label>Name</label>
+            <label>Nome do site</label>
             <input value={name} onChange={(e) => setName(e.target.value)} required />
+            <small style={{ color: "#7c6f64" }}>Ex.: &quot;Diário do João&quot;</small>
           </div>
           <div className="form-field">
-            <label>Slug</label>
-            <input value={slug} onChange={(e) => setSlug(e.target.value)} required />
+            <label>Endereço (URL)</label>
+            <input value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} required />
+            <small style={{ color: "#7c6f64" }}>
+              Parte do endereço usada pelo sistema, em minúsculas e sem espaços. Ex.: <code style={{ background: "#f0ece6", padding: "0 0.25rem", borderRadius: "3px" }}>meu-blog</code>
+            </small>
           </div>
           <div className="form-field">
-            <label>Description</label>
+            <label>Descrição</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               style={{ minHeight: "80px" }}
             />
+            <small style={{ color: "#7c6f64" }}>Opcional. Uma frase curta que aparece no seu site.</small>
           </div>
           <div className="form-field">
-            <label>Default language</label>
+            <label>Idioma padrão</label>
             <select value={language} onChange={(e) => setLanguage(e.target.value)}>
               {LANGUAGES.map((l) => (
                 <option key={l.code} value={l.code}>
-                  {l.label}
+                  {LANG_LABELS[l.code] || l.label}
                 </option>
               ))}
             </select>
           </div>
           <div className="form-field">
-            <label>Domains (comma-separated)</label>
+            <label>Domínios (separados por vírgula)</label>
             <input
               value={domains}
               onChange={(e) => setDomains(e.target.value)}
-              placeholder="localhost, diario.localhost"
+              placeholder="exemplo.com, blog.exemplo.com"
             />
+            <small style={{ color: "#7c6f64" }}>
+              Opcional. Os endereços pelos quais o site ficará acessível.
+            </small>
           </div>
           <button className="btn" type="submit">
-            Create Site
+            Criar site
           </button>
         </form>
       )}
@@ -112,19 +128,19 @@ export default function SitesPage() {
             <div className="info">
               <h3>{site.name}</h3>
               <p>
-                /{site.slug} · {site.description || "No description"} ·{" "}
-                {site.language || "en"}
+                /{site.slug} · {site.description || "Sem descrição"} ·{" "}
+                {site.language === "pt-BR" ? "Português (Brasil)" : site.language === "en" ? "Inglês" : site.language}
               </p>
             </div>
             <div className="actions">
               <Link href={`/admin/sites/${site.id}`} className="small-btn">
-                Manage
+                Gerenciar
               </Link>
             </div>
           </div>
         ))}
         {sites.length === 0 && (
-          <p className="empty">No sites yet. Create your first site.</p>
+          <p className="empty">Nenhum site ainda. Crie o seu primeiro site.</p>
         )}
       </div>
     </AdminShell>

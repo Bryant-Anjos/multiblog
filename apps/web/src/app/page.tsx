@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { Shell } from "@/components/Shell";
+import { StoryCard } from "@/components/StoryCard";
 import {
   fetchPublicSite,
   getHost,
@@ -124,18 +125,12 @@ export default async function HomePage() {
             </div>
             <div className="story-grid">
               {topStories.map((story: any) => (
-                <Link key={story.id} href={`/stories/${story.slug}`} className="story-card">
-                  <div className="story-icon" aria-hidden="true">
-                    📖
-                  </div>
-                  <h3>{story.title}</h3>
-                  {story.description && (
-                    <p className="story-desc">{story.description}</p>
-                  )}
-                  <p className="story-stats">
-                    {story.relationship_type || "Story"}
-                  </p>
-                </Link>
+                <StoryCard
+                  key={story.id}
+                  story={story}
+                  lang={lang}
+                  fallbackLabel={t("story")}
+                />
               ))}
             </div>
           </section>

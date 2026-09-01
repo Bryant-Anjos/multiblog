@@ -64,6 +64,13 @@ type Story struct {
 	UpdatedAt        time.Time `json:"updated_at"`
 }
 
+type StoryStats struct {
+	Story
+	GroupCount      int `json:"group_count"`
+	ChapterCount    int `json:"chapter_count"`
+	PublishedCount  int `json:"published_count"`
+}
+
 type StoryGroup struct {
 	ID        string    `json:"id"`
 	StoryID   string    `json:"story_id"`

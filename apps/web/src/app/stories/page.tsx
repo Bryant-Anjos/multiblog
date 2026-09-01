@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
-import Link from "next/link";
 import { SiteShell } from "@/components/SiteShell";
+import { StoryCard } from "@/components/StoryCard";
 import { fetchPublicSite, getHost, resolveSiteLang } from "@/lib/api";
 import { translate, type Lang } from "@/lib/i18n";
 
@@ -31,14 +31,12 @@ export default async function StoriesPage() {
         {mainStories.length > 0 && (
           <div className="story-grid">
             {mainStories.map((story: any) => (
-              <Link key={story.id} href={`/stories/${story.slug}`} className="story-card">
-                <div className="story-icon" aria-hidden="true">
-                  📖
-                </div>
-                <h3>{story.title}</h3>
-                {story.description && <p className="story-desc">{story.description}</p>}
-                <p className="story-stats">{t("mainStory")}</p>
-              </Link>
+              <StoryCard
+                key={story.id}
+                story={story}
+                lang={lang}
+                fallbackLabel={t("mainStory")}
+              />
             ))}
           </div>
         )}
@@ -50,22 +48,13 @@ export default async function StoriesPage() {
             </div>
             <div className="story-grid">
               {spinoffs.map((story: any) => (
-                <Link
+                <StoryCard
                   key={story.id}
-                  href={`/stories/${story.slug}`}
-                  className="story-card"
-                >
-                  <div className="story-icon" aria-hidden="true">
-                    ✦
-                  </div>
-                  <h3>{story.title}</h3>
-                  {story.description && (
-                    <p className="story-desc">{story.description}</p>
-                  )}
-                  <p className="story-stats">
-                    {story.relationship_type || t("related")}
-                  </p>
-                </Link>
+                  story={story}
+                  lang={lang}
+                  icon="✦"
+                  fallbackLabel={t("related")}
+                />
               ))}
             </div>
           </>

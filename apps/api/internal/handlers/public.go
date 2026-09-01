@@ -134,7 +134,7 @@ func (h *PublicHandler) GetPage(w http.ResponseWriter, r *http.Request) {
 
 func (h *PublicHandler) ListStories(w http.ResponseWriter, r *http.Request) {
 	ctx := siteFromContext(r.Context())
-	stories, err := h.storyRepo.ListWithSpinoffs(ctx.site.ID)
+	stories, err := h.storyRepo.ListStoriesWithStats(ctx.site.ID)
 	if err != nil {
 		writeInternalError(w, err)
 		return

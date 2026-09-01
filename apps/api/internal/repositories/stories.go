@@ -153,6 +153,62 @@ func (r *StoryRepository) ListWithSpinoffs(siteID string) ([]*models.Story, erro
 	return stories, nil
 }
 
+type storyCounts struct {
+	groupCount     int
+	chapterCount   int
+	publishedCount int
+}
+
+// ListStoriesWithStats returns all stories for a site together with aggregate
+// counts (groups, chapters, published chapters) used by the public site to
+// display chapter totals and reading progress without extra round-trips.
+func (r *StoryRepository) ListStoriesWithStats(siteID string) ([]*models.StoryStats, error) {
+	counter := func(query string, storyID string) (int, error) {
+		var n int
+		if err := r.db.QueryRow(query, storyID).Scan(&n); err != nil {
+			return 0, err
+		}
+		return n, nil
+	}
+
+	groupCountQuery := `SELECT COUNT(*) FROM story_groups WHERE story_id = $1`
+	chapterCountQuery := `SELECT COUNT(*) FROM chapters WHERE story_id = $1`
+	publishedCountQuery := `SELECT COUNT(*) FROM chapters WHERE story_id = $1 AND status = 'PUBLISHED'`
+
+	stories, err := r.ListWithSpinoffs(siteID)
+	if err != nil {
+		return nil, err
+	}
+
+	stats := make([]*models.StoryStats, 0, len(stories))
+	for _, story := range stories {
+		groupCount, err := counter(groupCountQuery, story.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to count groups for story %s: %w", story.ID, err)
+		}
+		chapterCount, err := counter(chapterCountQuery, story.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to count chapters for story %s: %w", story.ID, err)
+		}
+		publishedCount, err := counter(publishedCountQuery, story.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to count published chapters for story %s: %w", story.ID, err)
+		}
+		stats = append(stats, &models.StoryStats{
+			Story:          *story,
+			GroupCount:     groupCount,
+			ChapterCount:   chapterCount,
+			PublishedCount: publishedCount,
+		})
+	}
+
+	if stats == nil {
+		stats = []*models.StoryStats{}
+	}
+
+	return stats, nil
+}
+
 func (r *StoryRepository) Update(siteID, id string, req *models.CreateStoryRequest) (*models.Story, error) {
 	story := &models.Story{}
 	query := `

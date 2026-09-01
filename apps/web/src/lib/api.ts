@@ -80,6 +80,9 @@ export type Story = {
   description?: string;
   parent_story_id?: string;
   relationship_type?: string;
+  group_count?: number;
+  chapter_count?: number;
+  published_count?: number;
 };
 
 export type Chapter = {

@@ -66,6 +66,8 @@ const dict = {
     nextChapter: "Next Chapter",
     back: "Back",
     chapterNumber: "Chapter",
+    chaptersUnit: "chapters",
+    publishedOf: "published",
   },
   "pt-BR": {
     home: "Início",
@@ -114,6 +116,8 @@ const dict = {
     nextChapter: "Próximo capítulo",
     back: "Voltar",
     chapterNumber: "Capítulo",
+    chaptersUnit: "capítulos",
+    publishedOf: "publicados",
   },
 } as const;
 

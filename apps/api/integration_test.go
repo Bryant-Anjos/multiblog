@@ -320,6 +320,24 @@ func TestStoryOrganization(t *testing.T) {
 	if !foundMain || !foundSpin {
 		t.Fatalf("expected both main and spin-off stories in list")
 	}
+
+	// Stats: main has 1 group and 2 published chapters; spin-off has none.
+	stats, err := storyRepo.ListStoriesWithStats(site.ID)
+	if err != nil {
+		t.Fatalf("list stories with stats: %v", err)
+	}
+	for _, s := range stats {
+		if s.ID == main.ID {
+			if s.GroupCount != 1 || s.ChapterCount != 2 || s.PublishedCount != 2 {
+				t.Fatalf("main story stats mismatch: groups=%d chapters=%d published=%d", s.GroupCount, s.ChapterCount, s.PublishedCount)
+			}
+		}
+		if s.ID == spinoff.ID {
+			if s.ChapterCount != 0 || s.PublishedCount != 0 {
+				t.Fatalf("spin-off should have no counted chapters: chapters=%d published=%d", s.ChapterCount, s.PublishedCount)
+			}
+		}
+	}
 }
 
 func TestHostnameIsolationAcrossSites(t *testing.T) {

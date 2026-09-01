@@ -3,8 +3,9 @@
 import { useSite } from "@/context/SiteContext";
 import { adminFetch } from "@/lib/admin";
 import { useRouter, useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MarkdownPreview } from "@/components/admin/MarkdownPreview";
+import { MarkdownToolbar, applyMarkdownInsert } from "@/components/admin/MarkdownToolbar";
 
 export default function EditPostPage() {
   const { siteId } = useSite();
@@ -19,6 +20,7 @@ export default function EditPostPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [preview, setPreview] = useState(false);
+  const contentRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     if (!siteId || !postId) return;
@@ -118,12 +120,19 @@ export default function EditPostPage() {
           {preview ? (
             <MarkdownPreview content={content} />
           ) : (
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={16}
-              style={{ width: "100%", padding: "0.5rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.9rem", fontFamily: "monospace", resize: "vertical" }}
-            />
+            <div>
+              <MarkdownToolbar
+                textareaRef={contentRef}
+                onInsert={(def) => applyMarkdownInsert(contentRef, () => content, setContent, def)}
+              />
+              <textarea
+                ref={contentRef}
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows={16}
+                style={{ width: "100%", padding: "0.5rem", border: "1px solid #d9d5ce", borderRadius: "0 0 4px 4px", fontSize: "0.9rem", fontFamily: "monospace", resize: "vertical" }}
+              />
+            </div>
           )}
         </div>
       </div>

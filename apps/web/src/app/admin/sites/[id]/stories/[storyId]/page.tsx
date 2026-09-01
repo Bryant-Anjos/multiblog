@@ -3,8 +3,9 @@
 import { useSite } from "@/context/SiteContext";
 import { adminFetch } from "@/lib/admin";
 import { useRouter, useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MarkdownPreview } from "@/components/admin/MarkdownPreview";
+import { MarkdownToolbar, applyMarkdownInsert } from "@/components/admin/MarkdownToolbar";
 
 interface Story {
   id: string;
@@ -256,6 +257,9 @@ function ChaptersSection({
   const [groupMoveError, setGroupMoveError] = useState("");
   const [reordering, setReordering] = useState(false);
 
+  const contentRef = useRef<HTMLTextAreaElement | null>(null);
+  const editContentRef = useRef<HTMLTextAreaElement | null>(null);
+
   const addChapter = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !slug || !content) return;
@@ -484,7 +488,13 @@ function ChaptersSection({
             {preview ? (
               <MarkdownPreview content={content} />
             ) : (
-              <textarea value={content} onChange={(e) => setContent(e.target.value)} required rows={5} style={{ width: "100%", padding: "0.4rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.85rem", fontFamily: "monospace", resize: "vertical" }} />
+              <div>
+                <MarkdownToolbar
+                  textareaRef={contentRef}
+                  onInsert={(def) => applyMarkdownInsert(contentRef, () => content, setContent, def)}
+                />
+                <textarea ref={contentRef} value={content} onChange={(e) => setContent(e.target.value)} required rows={5} style={{ width: "100%", padding: "0.4rem", border: "1px solid #d9d5ce", borderRadius: "0 0 4px 4px", fontSize: "0.85rem", fontFamily: "monospace", resize: "vertical" }} />
+              </div>
             )}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
@@ -583,7 +593,13 @@ function ChaptersSection({
                 {editPreview ? (
                   <MarkdownPreview content={editContent} />
                 ) : (
-                  <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} rows={6} style={{ width: "100%", padding: "0.45rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.85rem", fontFamily: "monospace", resize: "vertical" }} />
+                  <div>
+                    <MarkdownToolbar
+                      textareaRef={editContentRef}
+                      onInsert={(def) => applyMarkdownInsert(editContentRef, () => editContent, setEditContent, def)}
+                    />
+                    <textarea ref={editContentRef} value={editContent} onChange={(e) => setEditContent(e.target.value)} rows={6} style={{ width: "100%", padding: "0.45rem", border: "1px solid #d9d5ce", borderRadius: "0 0 4px 4px", fontSize: "0.85rem", fontFamily: "monospace", resize: "vertical" }} />
+                  </div>
                 )}
               </div>
               <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>

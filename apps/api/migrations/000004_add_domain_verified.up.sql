@@ -1,0 +1,2 @@
+ALTER TABLE domains
+    ADD COLUMN verified BOOLEAN NOT NULL DEFAULT false;

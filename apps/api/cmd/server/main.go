@@ -81,6 +81,7 @@ func main() {
 	admin.HandleFunc("/sites/{id}/domains", siteHandler.AddDomain).Methods(http.MethodPost)
 	admin.HandleFunc("/sites/{id}/domains/{domainId}", siteHandler.DeleteDomain).Methods(http.MethodDelete)
 	admin.HandleFunc("/sites/{id}/domains/{domainId}", siteHandler.SetPrimaryDomain).Methods(http.MethodPut)
+	admin.HandleFunc("/sites/{id}/domains/{domainId}/verify", siteHandler.VerifyDomain).Methods(http.MethodPut)
 
 	admin.HandleFunc("/sites/{siteId}/posts", postHandler.ListAll).Methods(http.MethodGet)
 	admin.HandleFunc("/sites/{siteId}/posts", postHandler.Create).Methods(http.MethodPost)

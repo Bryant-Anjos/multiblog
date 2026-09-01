@@ -208,7 +208,7 @@ func (r *SiteRepository) Delete(id string) error {
 
 func (r *SiteRepository) GetDomains(siteID string) ([]*models.Domain, error) {
 	query := `
-		SELECT id, site_id, hostname, is_primary, created_at
+		SELECT id, site_id, hostname, is_primary, verified, created_at
 		FROM domains
 		WHERE site_id = $1
 		ORDER BY is_primary DESC, created_at ASC
@@ -223,7 +223,7 @@ func (r *SiteRepository) GetDomains(siteID string) ([]*models.Domain, error) {
 	var domains []*models.Domain
 	for rows.Next() {
 		domain := &models.Domain{}
-		err := rows.Scan(&domain.ID, &domain.SiteID, &domain.Hostname, &domain.IsPrimary, &domain.CreatedAt)
+		err := rows.Scan(&domain.ID, &domain.SiteID, &domain.Hostname, &domain.IsPrimary, &domain.Verified, &domain.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan domain: %w", err)
 		}
@@ -231,6 +231,35 @@ func (r *SiteRepository) GetDomains(siteID string) ([]*models.Domain, error) {
 	}
 
 	return domains, nil
+}
+
+func (r *SiteRepository) GetDomain(siteID, id string) (*models.Domain, error) {
+	domain := &models.Domain{}
+	query := `
+		SELECT id, site_id, hostname, is_primary, verified, created_at
+		FROM domains
+		WHERE id = $1 AND site_id = $2
+	`
+
+	err := r.db.QueryRow(query, id, siteID).Scan(
+		&domain.ID, &domain.SiteID, &domain.Hostname, &domain.IsPrimary, &domain.Verified, &domain.CreatedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get domain: %w", err)
+	}
+
+	return domain, nil
+}
+
+func (r *SiteRepository) SetDomainVerified(id string, verified bool) error {
+	query := `UPDATE domains SET verified = $1 WHERE id = $2`
+	if _, err := r.db.Exec(query, verified, id); err != nil {
+		return fmt.Errorf("failed to update domain verification: %w", err)
+	}
+	return nil
 }
 
 func (r *SiteRepository) AddDomain(siteID, hostname string, isPrimary bool) (*models.Domain, error) {

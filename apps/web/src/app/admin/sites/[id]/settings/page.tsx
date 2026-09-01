@@ -9,6 +9,7 @@ interface Domain {
   id: string;
   hostname: string;
   is_primary: boolean;
+  verified: boolean;
 }
 
 export default function SiteSettingsPage() {
@@ -97,6 +98,15 @@ export default function SiteSettingsPage() {
     if (res.ok) fetchDomains();
   };
 
+  const verifyDomain = async (d: Domain) => {
+    setBusy(true);
+    const res = await adminFetch(`/api/admin/sites/${siteId}/domains/${d.id}/verify`, {
+      method: "PUT",
+    });
+    setBusy(false);
+    if (res.ok) fetchDomains();
+  };
+
   if (loading) return <p style={{ color: "#999" }}>Loading...</p>;
 
   return (
@@ -152,6 +162,11 @@ export default function SiteSettingsPage() {
           Add domain
         </button>
       </form>
+      <p style={{ color: "#7c6f64", fontSize: "0.8rem", maxWidth: "480px", marginBottom: "1rem" }}>
+        To verify a domain, add a TXT record at the hostname with value{" "}
+        <code style={{ background: "#f0ece6", padding: "0.1rem 0.3rem", borderRadius: "3px" }}>multiblog-verify={site?.slug}</code>{", "}
+        then click Verify.
+      </p>
 
       {domains.length === 0 ? (
         <p style={{ color: "#999", fontSize: "0.9rem" }}>No domains configured.</p>
@@ -163,11 +178,19 @@ export default function SiteSettingsPage() {
                 <td style={{ padding: "0.5rem", fontFamily: "monospace", fontSize: "0.85rem" }}>
                   {d.hostname}
                   {d.is_primary && <span style={{ marginLeft: "0.5rem", fontSize: "0.75rem", color: "#7c6f64" }}>(primary)</span>}
+                  {d.verified ? (
+                    <span style={{ marginLeft: "0.5rem", fontSize: "0.75rem", color: "#2e7d32" }}>Verified</span>
+                  ) : (
+                    <span style={{ marginLeft: "0.5rem", fontSize: "0.75rem", color: "#c0392b" }}>Unverified</span>
+                  )}
                 </td>
                 <td style={{ padding: "0.5rem", textAlign: "right", whiteSpace: "nowrap" }}>
                   <a href={`http://${d.hostname}`} target="_blank" rel="noopener noreferrer" style={{ color: "#d4a373", fontSize: "0.85rem", marginRight: "0.75rem" }}>
                     View
                   </a>
+                  <button onClick={() => verifyDomain(d)} disabled={busy} style={{ background: "none", border: "1px solid #d9d5ce", borderRadius: "6px", color: "#37352f", cursor: "pointer", fontSize: "0.78rem", padding: "0.15rem 0.5rem", marginRight: "0.5rem" }}>
+                    Verify
+                  </button>
                   {!d.is_primary && (
                     <button onClick={() => setPrimary(d)} disabled={busy} style={{ background: "none", border: "none", color: "#2e7d32", cursor: "pointer", fontSize: "0.85rem", padding: 0, marginRight: "0.75rem" }}>
                       Set primary

@@ -17,6 +17,7 @@ type Domain struct {
 	SiteID    string    `json:"site_id"`
 	Hostname  string    `json:"hostname"`
 	IsPrimary bool      `json:"is_primary"`
+	Verified  bool      `json:"verified"`
 	CreatedAt time.Time `json:"created_at"`
 }
 

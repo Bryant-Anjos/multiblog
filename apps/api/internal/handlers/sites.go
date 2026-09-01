@@ -1,8 +1,12 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
+	"net"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/multiblog/api/internal/models"
@@ -153,4 +157,55 @@ func (h *SiteHandler) SetPrimaryDomain(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *SiteHandler) VerifyDomain(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	siteID := vars["id"]
+	domainID := vars["domainId"]
+
+	site, err := h.repo.GetByID(siteID)
+	if err != nil {
+		writeInternalError(w, err)
+		return
+	}
+	if site == nil {
+		writeNotFound(w)
+		return
+	}
+
+	domain, err := h.repo.GetDomain(siteID, domainID)
+	if err != nil {
+		writeInternalError(w, err)
+		return
+	}
+	if domain == nil {
+		writeNotFound(w)
+		return
+	}
+
+	verified := false
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	hostname := strings.TrimSuffix(domain.Hostname, ".")
+	records, err := net.DefaultResolver.LookupTXT(ctx, hostname)
+	if err == nil {
+		expected := "multiblog-verify=" + site.Slug
+		for _, record := range records {
+			if record == expected {
+				verified = true
+				break
+			}
+		}
+	}
+
+	if err := h.repo.SetDomainVerified(domainID, verified); err != nil {
+		writeInternalError(w, err)
+		return
+	}
+
+	domain.Verified = verified
+	writeJSON(w, http.StatusOK, domain)
 }

@@ -358,3 +358,75 @@ func TestHostnameIsolationAcrossSites(t *testing.T) {
 		t.Fatalf("hostname B resolved to wrong site: %s", rb.ID)
 	}
 }
+
+func TestDomainVerification(t *testing.T) {
+	db := testDB(t)
+	repo := repositories.NewSiteRepository(db)
+
+	siteA, err := repo.Create(&models.CreateSiteRequest{
+		Name:    "Verify A",
+		Slug:    "verify-a-" + uuid.NewString()[:8],
+		Domains: []string{"verify-a-" + uuid.NewString()[:8] + ".localhost"},
+	})
+	if err != nil {
+		t.Fatalf("create A: %v", err)
+	}
+	defer cleanupSite(t, db, siteA.ID)
+
+	siteB, err := repo.Create(&models.CreateSiteRequest{
+		Name:    "Verify B",
+		Slug:    "verify-b-" + uuid.NewString()[:8],
+		Domains: []string{"verify-b-" + uuid.NewString()[:8] + ".localhost"},
+	})
+	if err != nil {
+		t.Fatalf("create B: %v", err)
+	}
+	defer cleanupSite(t, db, siteB.ID)
+
+	domainsA, err := repo.GetDomains(siteA.ID)
+	if err != nil {
+		t.Fatalf("get domains A: %v", err)
+	}
+	if len(domainsA) != 1 {
+		t.Fatalf("expected 1 domain for A, got %d", len(domainsA))
+	}
+	domA := domainsA[0]
+
+	// New domains default to unverified.
+	if domA.Verified {
+		t.Fatalf("expected new domain to be unverified")
+	}
+
+	// Persist verified = true and confirm GetDomains reflects it.
+	if err := repo.SetDomainVerified(domA.ID, true); err != nil {
+		t.Fatalf("set verified: %v", err)
+	}
+	got, err := repo.GetDomain(siteA.ID, domA.ID)
+	if err != nil {
+		t.Fatalf("get domain: %v", err)
+	}
+	if got == nil || !got.Verified {
+		t.Fatalf("expected domain verified, got %+v", got)
+	}
+
+	// Cross-site isolation: site B must not be able to fetch site A's domain.
+	cross, err := repo.GetDomain(siteB.ID, domA.ID)
+	if err != nil {
+		t.Fatalf("get domain cross-site: %v", err)
+	}
+	if cross != nil {
+		t.Fatalf("domain leaked across sites: %+v", cross)
+	}
+
+	// Reset to false.
+	if err := repo.SetDomainVerified(domA.ID, false); err != nil {
+		t.Fatalf("reset verified: %v", err)
+	}
+	got2, err := repo.GetDomain(siteA.ID, domA.ID)
+	if err != nil {
+		t.Fatalf("get domain after reset: %v", err)
+	}
+	if got2 == nil || got2.Verified {
+		t.Fatalf("expected domain unverified after reset, got %+v", got2)
+	}
+}

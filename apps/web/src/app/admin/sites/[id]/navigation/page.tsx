@@ -3,6 +3,9 @@
 import { useSite } from "@/context/SiteContext";
 import { adminFetch } from "@/lib/admin";
 import { useEffect, useState } from "react";
+import { SkeletonRows } from "@/components/admin/Skeleton";
+import { EmptyState } from "@/components/admin/EmptyState";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 
 interface NavItem {
   id: string;
@@ -21,6 +24,11 @@ export default function SiteNavigationPage() {
   const [type, setType] = useState("link");
   const [destination, setDestination] = useState("");
   const [creating, setCreating] = useState(false);
+
+  const [toDelete, setToDelete] = useState<NavItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const sorted = [...items].sort((a, b) => a.position - b.position);
 
   const fetchItems = () => {
     if (!siteId) return;
@@ -51,11 +59,39 @@ export default function SiteNavigationPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this navigation item?")) return;
-    await adminFetch(`/api/admin/navigation/${id}`, {
+  const move = async (idx: number, dir: -1 | 1) => {
+    const target = idx + dir;
+    if (target < 0 || target >= sorted.length) return;
+    const a = sorted[idx];
+    const b = sorted[target];
+    const update = (item: NavItem, pos: number) =>
+      adminFetch(`/api/admin/navigation/${item.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          label: item.label,
+          type: item.type,
+          destination: item.destination,
+          position: pos,
+          is_visible: item.is_visible,
+        }),
+      });
+    setDeleting(true);
+    try {
+      await Promise.all([update(a, b.position), update(b, a.position)]);
+      fetchItems();
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!toDelete) return;
+    setDeleting(true);
+    await adminFetch(`/api/admin/navigation/${toDelete.id}`, {
       method: "DELETE",
     });
+    setDeleting(false);
+    setToDelete(null);
     fetchItems();
   };
 
@@ -92,13 +128,14 @@ export default function SiteNavigationPage() {
       </div>
 
       {loading ? (
-        <p style={{ color: "#999" }}>Loading...</p>
-      ) : items.length === 0 ? (
-        <p style={{ color: "#999", textAlign: "center", padding: "2rem" }}>No navigation items yet.</p>
+        <SkeletonRows rows={3} cols={4} />
+      ) : sorted.length === 0 ? (
+        <EmptyState title="No navigation items yet." hint="Add links, pages, posts, or stories above to build your site menu." />
       ) : (
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ borderBottom: "1px solid #e8e4df" }}>
+              <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Order</th>
               <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Label</th>
               <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Type</th>
               <th style={{ textAlign: "left", padding: "0.5rem", color: "#7c6f64", fontWeight: 500, fontSize: "0.8rem" }}>Destination</th>
@@ -106,13 +143,17 @@ export default function SiteNavigationPage() {
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => (
+            {sorted.map((item, i) => (
               <tr key={item.id} style={{ borderBottom: "1px solid #f0ece6" }}>
+                <td style={{ padding: "0.5rem", whiteSpace: "nowrap" }}>
+                  <button onClick={() => move(i, -1)} disabled={i === 0 || deleting} style={arrowBtnStyle}>↑</button>
+                  <button onClick={() => move(i, 1)} disabled={i === sorted.length - 1 || deleting} style={arrowBtnStyle}>↓</button>
+                </td>
                 <td style={{ padding: "0.5rem" }}>{item.label}</td>
                 <td style={{ padding: "0.5rem", color: "#999", fontSize: "0.85rem" }}>{item.type}</td>
                 <td style={{ padding: "0.5rem", fontFamily: "monospace", fontSize: "0.85rem" }}>{item.destination}</td>
                 <td style={{ padding: "0.5rem" }}>
-                  <button onClick={() => handleDelete(item.id)} style={{ background: "none", border: "none", color: "#c0392b", cursor: "pointer", fontSize: "0.85rem", padding: 0 }}>
+                  <button onClick={() => setToDelete(item)} style={{ background: "none", border: "none", color: "#c0392b", cursor: "pointer", fontSize: "0.85rem", padding: 0 }}>
                     Delete
                   </button>
                 </td>
@@ -121,6 +162,27 @@ export default function SiteNavigationPage() {
           </tbody>
         </table>
       )}
+
+      <ConfirmDialog
+        open={!!toDelete}
+        title={`Delete "${toDelete?.label}"?`}
+        body="This removes the item from the site menu."
+        busy={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setToDelete(null)}
+      />
     </div>
   );
 }
+
+const arrowBtnStyle: React.CSSProperties = {
+  background: "none",
+  border: "1px solid #d9d5ce",
+  borderRadius: "4px",
+  cursor: "pointer",
+  fontSize: "0.8rem",
+  lineHeight: 1,
+  padding: "0.2rem 0.45rem",
+  marginRight: "0.25rem",
+  color: "#7c6f64",
+};

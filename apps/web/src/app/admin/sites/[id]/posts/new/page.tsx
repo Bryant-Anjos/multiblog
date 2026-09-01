@@ -4,6 +4,7 @@ import { useSite } from "@/context/SiteContext";
 import { adminFetch } from "@/lib/admin";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { MarkdownPreview } from "@/components/admin/MarkdownPreview";
 
 export default function NewPostPage() {
   const { siteId } = useSite();
@@ -12,6 +13,7 @@ export default function NewPostPage() {
   const [slug, setSlug] = useState("");
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
+  const [preview, setPreview] = useState(false);
 
   const handleTitleChange = (val: string) => {
     setTitle(val);
@@ -68,14 +70,23 @@ export default function NewPostPage() {
           />
         </div>
         <div>
-          <label style={{ display: "block", fontSize: "0.85rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Content *</label>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            required
-            rows={12}
-            style={{ width: "100%", padding: "0.5rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.9rem", fontFamily: "monospace", resize: "vertical" }}
-          />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+            <label style={{ fontSize: "0.85rem", color: "#7c6f64" }}>Content *</label>
+            <button type="button" onClick={() => setPreview((p) => !p)} style={{ background: "none", border: "none", color: "#d4a373", cursor: "pointer", fontSize: "0.8rem", padding: 0 }}>
+              {preview ? "Edit" : "Preview"}
+            </button>
+          </div>
+          {preview ? (
+            <MarkdownPreview content={content} />
+          ) : (
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              required
+              rows={12}
+              style={{ width: "100%", padding: "0.5rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.9rem", fontFamily: "monospace", resize: "vertical" }}
+            />
+          )}
         </div>
         <div>
           <button

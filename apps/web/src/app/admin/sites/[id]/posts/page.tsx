@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useSite } from "@/context/SiteContext";
 import { adminFetch } from "@/lib/admin";
 import { useEffect, useState } from "react";
+import { SkeletonRows } from "@/components/admin/Skeleton";
+import { EmptyState } from "@/components/admin/EmptyState";
 
 interface Post {
   id: string;
@@ -50,14 +52,14 @@ export default function SitePostsPage() {
       </div>
 
       {loading ? (
-        <p style={{ color: "#999" }}>Loading...</p>
+        <SkeletonRows rows={4} cols={4} />
       ) : posts.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "3rem", color: "#999" }}>
-          <p>No posts yet.</p>
-          <Link href={`/admin/sites/${siteId}/posts/new`} style={{ color: "#d4a373" }}>
-            Create your first post →
-          </Link>
-        </div>
+        <EmptyState
+          title="No posts yet."
+          hint="Publish your first article to appear on the site."
+          ctaHref={`/admin/sites/${siteId}/posts/new`}
+          ctaLabel="Create your first post"
+        />
       ) : (
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>

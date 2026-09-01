@@ -140,3 +140,17 @@ func (h *SiteHandler) DeleteDomain(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func (h *SiteHandler) SetPrimaryDomain(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	siteID := vars["id"]
+	domainID := vars["domainId"]
+
+	err := h.repo.SetPrimaryDomain(siteID, domainID)
+	if err != nil {
+		writeInternalError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

@@ -4,6 +4,7 @@ import { useSite } from "@/context/SiteContext";
 import { adminFetch } from "@/lib/admin";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { MarkdownPreview } from "@/components/admin/MarkdownPreview";
 
 export default function EditPagePage() {
   const { siteId } = useSite();
@@ -17,6 +18,7 @@ export default function EditPagePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [preview, setPreview] = useState(false);
 
   useEffect(() => {
     if (!siteId || !pageId) return;
@@ -104,13 +106,25 @@ export default function EditPagePage() {
           />
         </div>
         <div>
-          <label style={{ display: "block", fontSize: "0.85rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Content</label>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={16}
-            style={{ width: "100%", padding: "0.5rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.9rem", fontFamily: "monospace", resize: "vertical" }}
-          />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+            <label style={{ fontSize: "0.85rem", color: "#7c6f64" }}>Content</label>
+            <button
+              onClick={() => setPreview((p) => !p)}
+              style={{ background: "none", border: "none", color: "#d4a373", cursor: "pointer", fontSize: "0.8rem", padding: 0 }}
+            >
+              {preview ? "Edit" : "Preview"}
+            </button>
+          </div>
+          {preview ? (
+            <MarkdownPreview content={content} />
+          ) : (
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={16}
+              style={{ width: "100%", padding: "0.5rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.9rem", fontFamily: "monospace", resize: "vertical" }}
+            />
+          )}
         </div>
       </div>
     </div>

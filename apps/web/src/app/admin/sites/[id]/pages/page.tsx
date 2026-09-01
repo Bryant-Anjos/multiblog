@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useSite } from "@/context/SiteContext";
 import { adminFetch } from "@/lib/admin";
 import { useEffect, useState } from "react";
+import { SkeletonRows } from "@/components/admin/Skeleton";
+import { EmptyState } from "@/components/admin/EmptyState";
 
 interface Page {
   id: string;
@@ -48,14 +50,14 @@ export default function SitePagesPage() {
       </div>
 
       {loading ? (
-        <p style={{ color: "#999" }}>Loading...</p>
+        <SkeletonRows rows={4} cols={4} />
       ) : pages.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "3rem", color: "#999" }}>
-          <p>No pages yet.</p>
-          <Link href={`/admin/sites/${siteId}/pages/new`} style={{ color: "#d4a373" }}>
-            Create your first page →
-          </Link>
-        </div>
+        <EmptyState
+          title="No pages yet."
+          hint="Create static pages like About or Contact."
+          ctaHref={`/admin/sites/${siteId}/pages/new`}
+          ctaLabel="Create your first page"
+        />
       ) : (
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>

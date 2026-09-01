@@ -3,6 +3,7 @@
 import { ReactNode, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { SiteProvider } from "@/context/SiteContext";
+import Breadcrumb from "@/components/admin/Breadcrumb";
 import SiteSidebar from "@/components/admin/SiteSidebar";
 import { getToken } from "@/lib/admin";
 
@@ -18,6 +19,7 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
       <div style={{ display: "flex", minHeight: "100vh" }}>
         <SiteSidebar />
         <main style={{ flex: 1, padding: "2rem", maxWidth: "960px" }}>
+          <Breadcrumb />
           {children}
         </main>
       </div>

@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useSite } from "@/context/SiteContext";
 import { adminFetch } from "@/lib/admin";
 import { useEffect, useState } from "react";
+import { SkeletonRows } from "@/components/admin/Skeleton";
+import { EmptyState } from "@/components/admin/EmptyState";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 
 interface Story {
   id: string;
@@ -21,6 +24,9 @@ export default function SiteStoriesPage() {
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [creating, setCreating] = useState(false);
+
+  const [toDelete, setToDelete] = useState<Story | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchStories = () => {
     if (!siteId) return;
@@ -51,12 +57,17 @@ export default function SiteStoriesPage() {
     }
   };
 
-  const handleDelete = async (story: Story) => {
-    if (!confirm(`Delete story "${story.title}" and all its chapters?`)) return;
-    const res = await adminFetch(`/api/admin/sites/${siteId}/stories/${story.id}`, {
+  const confirmDelete = async () => {
+    if (!toDelete) return;
+    setDeleting(true);
+    const res = await adminFetch(`/api/admin/sites/${siteId}/stories/${toDelete.id}`, {
       method: "DELETE",
     });
-    if (res.ok) fetchStories();
+    setDeleting(false);
+    if (res.ok) {
+      setToDelete(null);
+      fetchStories();
+    }
   };
 
   return (
@@ -102,9 +113,13 @@ export default function SiteStoriesPage() {
       </div>
 
       {loading ? (
-        <p style={{ color: "#999" }}>Loading...</p>
+        <SkeletonRows rows={3} cols={5} />
       ) : stories.length === 0 ? (
-        <p style={{ color: "#999", textAlign: "center", padding: "2rem" }}>No stories yet.</p>
+        <EmptyState
+          title="No stories yet."
+          hint="Stories let you organize chapters into books, seasons, or arcs."
+          ctaLabel="Create your first story above ↑"
+        />
       ) : (
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
@@ -149,7 +164,7 @@ export default function SiteStoriesPage() {
                         Manage
                       </Link>
                       <button
-                        onClick={() => handleDelete(story)}
+                        onClick={() => setToDelete(story)}
                         style={{ background: "none", border: "none", color: "#c0392b", cursor: "pointer", fontSize: "0.85rem", padding: 0 }}
                       >
                         Delete
@@ -162,6 +177,15 @@ export default function SiteStoriesPage() {
           </tbody>
         </table>
       )}
+
+      <ConfirmDialog
+        open={!!toDelete}
+        title={`Delete "${toDelete?.title}"?`}
+        body="This deletes the story and all of its chapters. This cannot be undone."
+        busy={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setToDelete(null)}
+      />
     </div>
   );
 }

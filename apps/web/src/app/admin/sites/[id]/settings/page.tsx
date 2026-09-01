@@ -3,6 +3,7 @@
 import { useSite } from "@/context/SiteContext";
 import { adminFetch } from "@/lib/admin";
 import { useEffect, useState } from "react";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 
 interface Domain {
   id: string;
@@ -21,6 +22,15 @@ export default function SiteSettingsPage() {
   const [domains, setDomains] = useState<Domain[]>([]);
   const [hostname, setHostname] = useState("");
   const [addingDomain, setAddingDomain] = useState(false);
+  const [toDelete, setToDelete] = useState<Domain | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const fetchDomains = () => {
+    if (!siteId) return;
+    adminFetch(`/api/admin/sites/${siteId}/domains`)
+      .then((r) => r.json())
+      .then((data) => setDomains(Array.isArray(data) ? data : []));
+  };
 
   useEffect(() => {
     if (site) {
@@ -30,12 +40,7 @@ export default function SiteSettingsPage() {
     }
   }, [site]);
 
-  useEffect(() => {
-    if (!siteId) return;
-    adminFetch(`/api/admin/sites/${siteId}/domains`)
-      .then((r) => r.json())
-      .then((data) => setDomains(Array.isArray(data) ? data : []));
-  }, [siteId]);
+  useEffect(() => { fetchDomains(); }, [siteId]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -63,20 +68,33 @@ export default function SiteSettingsPage() {
       });
       if (res.ok) {
         setHostname("");
-        const data = await adminFetch(`/api/admin/sites/${siteId}/domains`).then((r) => r.json());
-        setDomains(Array.isArray(data) ? data : []);
+        fetchDomains();
       }
     } finally {
       setAddingDomain(false);
     }
   };
 
-  const handleDeleteDomain = async (id: string) => {
-    if (!confirm("Delete this domain?")) return;
-    await adminFetch(`/api/admin/sites/${siteId}/domains/${id}`, {
+  const confirmDeleteDomain = async () => {
+    if (!toDelete) return;
+    setBusy(true);
+    const res = await adminFetch(`/api/admin/sites/${siteId}/domains/${toDelete.id}`, {
       method: "DELETE",
     });
-    setDomains((prev) => prev.filter((d) => d.id !== id));
+    setBusy(false);
+    if (res.ok) {
+      setToDelete(null);
+      fetchDomains();
+    }
+  };
+
+  const setPrimary = async (d: Domain) => {
+    setBusy(true);
+    const res = await adminFetch(`/api/admin/sites/${siteId}/domains/${d.id}`, {
+      method: "PUT",
+    });
+    setBusy(false);
+    if (res.ok) fetchDomains();
   };
 
   if (loading) return <p style={{ color: "#999" }}>Loading...</p>;
@@ -146,11 +164,16 @@ export default function SiteSettingsPage() {
                   {d.hostname}
                   {d.is_primary && <span style={{ marginLeft: "0.5rem", fontSize: "0.75rem", color: "#7c6f64" }}>(primary)</span>}
                 </td>
-                <td style={{ padding: "0.5rem", textAlign: "right" }}>
+                <td style={{ padding: "0.5rem", textAlign: "right", whiteSpace: "nowrap" }}>
                   <a href={`http://${d.hostname}`} target="_blank" rel="noopener noreferrer" style={{ color: "#d4a373", fontSize: "0.85rem", marginRight: "0.75rem" }}>
                     View
                   </a>
-                  <button onClick={() => handleDeleteDomain(d.id)} style={{ background: "none", border: "none", color: "#c0392b", cursor: "pointer", fontSize: "0.85rem", padding: 0 }}>
+                  {!d.is_primary && (
+                    <button onClick={() => setPrimary(d)} disabled={busy} style={{ background: "none", border: "none", color: "#2e7d32", cursor: "pointer", fontSize: "0.85rem", padding: 0, marginRight: "0.75rem" }}>
+                      Set primary
+                    </button>
+                  )}
+                  <button onClick={() => setToDelete(d)} disabled={busy} style={{ background: "none", border: "none", color: "#c0392b", cursor: "pointer", fontSize: "0.85rem", padding: 0 }}>
                     Delete
                   </button>
                 </td>
@@ -159,6 +182,15 @@ export default function SiteSettingsPage() {
           </tbody>
         </table>
       )}
+
+      <ConfirmDialog
+        open={!!toDelete}
+        title={`Delete "${toDelete?.hostname}"?`}
+        body="Traffic sent to this hostname will no longer resolve to this site."
+        busy={busy}
+        onConfirm={confirmDeleteDomain}
+        onCancel={() => setToDelete(null)}
+      />
     </div>
   );
 }

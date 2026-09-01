@@ -4,6 +4,7 @@ import { useSite } from "@/context/SiteContext";
 import { adminFetch } from "@/lib/admin";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { MarkdownPreview } from "@/components/admin/MarkdownPreview";
 
 interface Story {
   id: string;
@@ -239,6 +240,7 @@ function ChaptersSection({
   const [groupId, setGroupId] = useState("");
   const [publish, setPublish] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [preview, setPreview] = useState(false);
 
   const [editing, setEditing] = useState<Chapter | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -246,6 +248,7 @@ function ChaptersSection({
   const [editContent, setEditContent] = useState("");
   const [editGroup, setEditGroup] = useState("");
   const [editSaving, setEditSaving] = useState(false);
+  const [editPreview, setEditPreview] = useState(false);
 
   const addChapter = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -382,8 +385,17 @@ function ChaptersSection({
             </select>
           </div>
           <div>
-            <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Content (Markdown)</label>
-            <textarea value={content} onChange={(e) => setContent(e.target.value)} required rows={5} style={{ width: "100%", padding: "0.4rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.85rem", fontFamily: "monospace", resize: "vertical" }} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+              <label style={{ fontSize: "0.8rem", color: "#7c6f64" }}>Content (Markdown)</label>
+              <button onClick={() => setPreview((p) => !p)} style={{ background: "none", border: "none", color: "#d4a373", cursor: "pointer", fontSize: "0.8rem", padding: 0 }}>
+                {preview ? "Edit" : "Preview"}
+              </button>
+            </div>
+            {preview ? (
+              <MarkdownPreview content={content} />
+            ) : (
+              <textarea value={content} onChange={(e) => setContent(e.target.value)} required rows={5} style={{ width: "100%", padding: "0.4rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.85rem", fontFamily: "monospace", resize: "vertical" }} />
+            )}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <button type="submit" disabled={creating} style={{ padding: "0.4rem 0.8rem", background: "#37352f", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "0.85rem" }}>
@@ -445,8 +457,17 @@ function ChaptersSection({
                 </select>
               </div>
               <div>
-                <label style={{ display: "block", fontSize: "0.8rem", color: "#7c6f64", marginBottom: "0.25rem" }}>Content</label>
-                <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} rows={6} style={{ width: "100%", padding: "0.45rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.85rem", fontFamily: "monospace", resize: "vertical" }} />
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+                  <label style={{ fontSize: "0.8rem", color: "#7c6f64" }}>Content</label>
+                  <button onClick={() => setEditPreview((p) => !p)} style={{ background: "none", border: "none", color: "#d4a373", cursor: "pointer", fontSize: "0.8rem", padding: 0 }}>
+                    {editPreview ? "Edit" : "Preview"}
+                  </button>
+                </div>
+                {editPreview ? (
+                  <MarkdownPreview content={editContent} />
+                ) : (
+                  <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} rows={6} style={{ width: "100%", padding: "0.45rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.85rem", fontFamily: "monospace", resize: "vertical" }} />
+                )}
               </div>
               <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
                 <button onClick={() => setEditing(null)} style={{ padding: "0.4rem 0.8rem", background: "#fff", color: "#37352f", border: "1px solid #d9d5ce", borderRadius: "6px", cursor: "pointer", fontSize: "0.85rem" }}>

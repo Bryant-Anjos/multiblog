@@ -264,3 +264,33 @@ func (r *SiteRepository) DeleteDomain(id string) error {
 	}
 	return nil
 }
+
+func (r *SiteRepository) SetPrimaryDomain(siteID, id string) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(`UPDATE domains SET is_primary = FALSE WHERE site_id = $1`, siteID); err != nil {
+		return fmt.Errorf("failed to clear primary domain: %w", err)
+	}
+
+	result, err := tx.Exec(`UPDATE domains SET is_primary = TRUE WHERE id = $1 AND site_id = $2`, id, siteID)
+	if err != nil {
+		return fmt.Errorf("failed to set primary domain: %w", err)
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check affected rows: %w", err)
+	}
+	if affected == 0 {
+		return nil
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	return nil
+}

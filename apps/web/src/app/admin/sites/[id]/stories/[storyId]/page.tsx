@@ -250,6 +250,11 @@ function ChaptersSection({
   const [editSaving, setEditSaving] = useState(false);
   const [editPreview, setEditPreview] = useState(false);
 
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [moveGroup, setMoveGroup] = useState("");
+  const [moving, setMoving] = useState(false);
+  const [groupMoveError, setGroupMoveError] = useState("");
+
   const addChapter = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !slug || !content) return;
@@ -317,11 +322,71 @@ function ChaptersSection({
     if (res.ok) onChanged();
   };
 
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    setSelected((prev) => (prev.size === chapters.length ? new Set() : new Set(chapters.map((c) => c.id))));
+  };
+
+  const clearSelection = () => setSelected(new Set());
+
+  const applyBulkMove = async () => {
+    if (selected.size === 0) return;
+    setMoving(true);
+    setGroupMoveError("");
+    const target = moveGroup || null;
+    try {
+      const results = await Promise.all(
+        chapters
+          .filter((c) => selected.has(c.id))
+          .map((c) =>
+            adminFetch(`/api/admin/sites/${siteId}/stories/${storyId}/chapters/${c.id}`, {
+              method: "PUT",
+              body: JSON.stringify({
+                title: c.title,
+                slug: c.slug,
+                content: c.content,
+                group_id: target,
+                status: c.status,
+              }),
+            })
+          )
+      );
+      if (results.every((r) => r.ok)) {
+        setSelected(new Set());
+        setMoveGroup("");
+        onChanged();
+      } else {
+        setGroupMoveError("Failed to move one or more chapters. Please try again.");
+      }
+    } catch {
+      setGroupMoveError("Failed to move chapters. Please try again.");
+    } finally {
+      setMoving(false);
+    }
+  };
+
   const renderChapter = (c: Chapter) => (
-    <div key={c.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.6rem 0.75rem", background: "#fff", border: "1px solid #e8e4df", borderRadius: "8px", marginBottom: "0.5rem" }}>
-      <div>
-        <div style={{ fontWeight: 500, color: "#37352f" }}>{c.title}</div>
-        <div style={{ color: "#999", fontFamily: "monospace", fontSize: "0.8rem" }}>/{c.slug}</div>
+    <div key={c.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.6rem 0.75rem", background: selected.has(c.id) ? "#f3f8ff" : "#fff", border: "1px solid #e8e4df", borderRadius: "8px", marginBottom: "0.5rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+        <input
+          type="checkbox"
+          checked={selected.has(c.id)}
+          onChange={() => toggleSelect(c.id)}
+          style={{ width: "auto", cursor: "pointer" }}
+          title="Select for bulk move"
+        />
+        <div>
+          <div style={{ fontWeight: 500, color: "#37352f" }}>{c.title}</div>
+          <div style={{ color: "#999", fontFamily: "monospace", fontSize: "0.8rem" }}>/{c.slug}</div>
+        </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
         <span
@@ -408,6 +473,33 @@ function ChaptersSection({
           </div>
         </form>
       </div>
+
+      {chapters.length > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.8rem", color: "#7c6f64", cursor: "pointer" }}>
+            <input type="checkbox" checked={selected.size === chapters.length} onChange={selectAll} style={{ width: "auto", cursor: "pointer" }} />
+            Select all
+          </label>
+          {selected.size > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0.75rem", background: "#faf7f2", border: "1px solid #e8e4df", borderRadius: "8px", flexWrap: "wrap" }}>
+              <span style={{ fontSize: "0.85rem", color: "#7c6f64" }}>{selected.size} selected</span>
+              <select value={moveGroup} onChange={(e) => setMoveGroup(e.target.value)} disabled={moving} style={{ padding: "0.3rem", border: "1px solid #d9d5ce", borderRadius: "4px", fontSize: "0.8rem" }}>
+                <option value="">— No group —</option>
+                {groups.map((g) => (
+                  <option key={g.id} value={g.id}>{g.title}</option>
+                ))}
+              </select>
+              <button onClick={applyBulkMove} disabled={moving || selected.size === 0} style={{ padding: "0.3rem 0.7rem", background: "#37352f", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                {moving ? "..." : "Move"}
+              </button>
+              <button onClick={clearSelection} disabled={moving} style={{ background: "none", border: "none", color: "#7c6f64", cursor: "pointer", fontSize: "0.8rem", padding: 0 }}>
+                Clear
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+      {groupMoveError && <p style={{ color: "#c0392b", fontSize: "0.85rem", margin: "0 0 0.75rem" }}>{groupMoveError}</p>}
 
       {groups.map((g) => {
         const gc = chapters.filter((c) => c.group_id === g.id);

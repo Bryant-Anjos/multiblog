@@ -101,6 +101,7 @@ func main() {
 	admin.HandleFunc("/sites/{siteId}/stories/{storyId}", storyHandler.Delete).Methods(http.MethodDelete)
 	admin.HandleFunc("/sites/{siteId}/stories/{storyId}/groups", storyHandler.CreateGroup).Methods(http.MethodPost)
 	admin.HandleFunc("/sites/{siteId}/stories/{storyId}/chapters", storyHandler.CreateChapter).Methods(http.MethodPost)
+	admin.HandleFunc("/sites/{siteId}/stories/{storyId}/chapters/reorder", storyHandler.ReorderChapters).Methods(http.MethodPut)
 	admin.HandleFunc("/sites/{siteId}/stories/{storyId}/chapters/{chapterId}", storyHandler.GetChapter).Methods(http.MethodGet)
 	admin.HandleFunc("/sites/{siteId}/stories/{storyId}/chapters/{chapterId}", storyHandler.UpdateChapter).Methods(http.MethodPut)
 	admin.HandleFunc("/sites/{siteId}/stories/{storyId}/chapters/{chapterId}", storyHandler.DeleteChapter).Methods(http.MethodDelete)

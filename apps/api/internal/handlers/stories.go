@@ -296,3 +296,37 @@ func (h *StoryHandler) DeleteChapter(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func (h *StoryHandler) ReorderChapters(w http.ResponseWriter, r *http.Request) {
+	siteID := mux.Vars(r)["siteId"]
+	storyID := mux.Vars(r)["storyId"]
+
+	story, err := h.repo.GetByID(siteID, storyID)
+	if err != nil {
+		writeInternalError(w, err)
+		return
+	}
+	if story == nil {
+		writeNotFound(w)
+		return
+	}
+
+	var req struct {
+		ChapterIDs []string `json:"chapter_ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeBadRequest(w, "invalid request body")
+		return
+	}
+	if len(req.ChapterIDs) == 0 {
+		writeBadRequest(w, "chapter_ids must not be empty")
+		return
+	}
+
+	if err := h.repo.ReorderChapters(storyID, req.ChapterIDs); err != nil {
+		writeInternalError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

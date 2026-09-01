@@ -254,6 +254,7 @@ function ChaptersSection({
   const [moveGroup, setMoveGroup] = useState("");
   const [moving, setMoving] = useState(false);
   const [groupMoveError, setGroupMoveError] = useState("");
+  const [reordering, setReordering] = useState(false);
 
   const addChapter = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -373,7 +374,27 @@ function ChaptersSection({
     }
   };
 
-  const renderChapter = (c: Chapter) => (
+  const reorder = async (groupedChapters: Chapter[], idx: number, dir: -1 | 1) => {
+    const target = idx + dir;
+    if (target < 0 || target >= groupedChapters.length) return;
+    const next = [...groupedChapters];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    setReordering(true);
+    try {
+      const res = await adminFetch(`/api/admin/sites/${siteId}/stories/${storyId}/chapters/reorder`, {
+        method: "PUT",
+        body: JSON.stringify({ chapter_ids: next.map((c) => c.id) }),
+      });
+      if (res.ok) {
+        setSelected(new Set());
+        onChanged();
+      }
+    } finally {
+      setReordering(false);
+    }
+  };
+
+  const renderChapter = (c: Chapter, groupChapters: Chapter[], index: number) => (
     <div key={c.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.6rem 0.75rem", background: selected.has(c.id) ? "#f3f8ff" : "#fff", border: "1px solid #e8e4df", borderRadius: "8px", marginBottom: "0.5rem" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
         <input
@@ -389,6 +410,10 @@ function ChaptersSection({
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+        <div style={{ display: "flex", gap: "0.15rem", marginRight: "0.25rem" }}>
+          <button onClick={() => reorder(groupChapters, index, -1)} disabled={index === 0 || reordering} style={arrowBtn}>↑</button>
+          <button onClick={() => reorder(groupChapters, index, 1)} disabled={index === groupChapters.length - 1 || reordering} style={arrowBtn}>↓</button>
+        </div>
         <span
           style={{
             padding: "0.15rem 0.5rem",
@@ -507,7 +532,7 @@ function ChaptersSection({
         return (
           <div key={g.id} style={{ marginBottom: "1.25rem" }}>
             <p style={{ fontWeight: 600, marginBottom: "0.5rem", color: "#7c6f64" }}>{g.title}</p>
-            {gc.map(renderChapter)}
+            {gc.map((c, i) => renderChapter(c, gc, i))}
           </div>
         );
       })}
@@ -515,7 +540,7 @@ function ChaptersSection({
       {ungrouped.length > 0 && (
         <div style={{ marginBottom: "1.25rem" }}>
           <p style={{ fontWeight: 600, marginBottom: "0.5rem", color: "#7c6f64" }}>Ungrouped</p>
-          {ungrouped.map(renderChapter)}
+          {ungrouped.map((c, i) => renderChapter(c, ungrouped, i))}
         </div>
       )}
 
@@ -576,3 +601,14 @@ function ChaptersSection({
     </div>
   );
 }
+
+const arrowBtn: React.CSSProperties = {
+  background: "none",
+  border: "1px solid #d9d5ce",
+  borderRadius: "4px",
+  cursor: "pointer",
+  fontSize: "0.8rem",
+  lineHeight: 1,
+  padding: "0.2rem 0.45rem",
+  color: "#7c6f64",
+};

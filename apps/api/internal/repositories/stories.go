@@ -416,3 +416,34 @@ func (r *StoryRepository) DeleteChapter(storyID, chapterID string) error {
 	}
 	return nil
 }
+
+func (r *StoryRepository) ReorderChapters(storyID string, orderedIDs []string) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	for i, chapterID := range orderedIDs {
+		position := i + 1
+		res, err := tx.Exec(
+			`UPDATE chapters SET position = $3, updated_at = NOW() WHERE id = $1 AND story_id = $2`,
+			chapterID, storyID, position,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to reorder chapter %s: %w", chapterID, err)
+		}
+		affected, err := res.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("failed to check affected rows: %w", err)
+		}
+		if affected == 0 {
+			return fmt.Errorf("chapter %s not found in story", chapterID)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	return nil
+}

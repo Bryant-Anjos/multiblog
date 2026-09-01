@@ -1,0 +1,213 @@
+name: Deploy
+
+# CI/CD to the Hostinger VPS.
+#
+# Push (or merge) to `production` -> https://blog-01.briam.cloud, ... (every
+# blog in SITES, all served by this one install).
+# `main` stays the working branch and is verified by ci.yml alone.
+#
+# The pipeline is: verify -> build+push to GHCR -> pull on the host. Nothing
+# is ever built on the VPS; the images are the release artifact and the same
+# ones can be re-applied later, which is what makes rollback a one-click
+# `workflow_dispatch` with an older tag instead of a revert commit.
+#
+# Everything host-side lives in scripts/deploy-app.sh and scripts/deploy-edge.sh
+# so that a manual deploy runs the exact same sequence as this workflow.
+#
+# Required per GitHub Environment (the `production` environment):
+#   secrets  SSH_PRIVATE_KEY, SSH_KNOWN_HOSTS
+#   vars     SSH_HOST, SSH_USER, SITE_DOMAIN  (SITE_DOMAIN = one blog hostname
+#            to smoke-test, e.g. blog-01.briam.cloud)
+# See docs/deployment.md → "GitHub settings".
+
+on:
+  push:
+    branches: [production]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: >-
+          Re-apply an image that already exists in GHCR (rollback), e.g.
+          production-8f3c1a2. Leave empty to verify and build the current ref.
+        type: string
+        required: false
+
+# Never two deploys at once. Deliberately NOT `cancel-in-progress`: cancelling
+# mid-`docker compose up` leaves a stack half recreated, which is worse than
+# waiting.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      environment: production
+      image_tag: ${{ steps.resolve.outputs.image_tag }}
+      image_repo: ${{ steps.resolve.outputs.image_repo }}
+      is_rollback: ${{ steps.resolve.outputs.is_rollback }}
+    steps:
+      - id: resolve
+        # Every `${{ }}` value is read through the environment rather than
+        # interpolated into the script text: a dispatch input and a branch
+        # name are both attacker-controllable in the general case, and
+        # interpolation would run them as shell.
+        env:
+          INPUT_IMAGE_TAG: ${{ inputs.image_tag }}
+          SHA: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [ -n "$INPUT_IMAGE_TAG" ]; then
+            # A tag becomes part of a shell command on the host; keep it to
+            # what a tag can legitimately be.
+            case "$INPUT_IMAGE_TAG" in
+              *[!A-Za-z0-9._-]*) echo "invalid image tag '$INPUT_IMAGE_TAG'" >&2; exit 1 ;;
+            esac
+            tag="$INPUT_IMAGE_TAG"
+            rollback=true
+          else
+            tag="production-${SHA::7}"
+            rollback=false
+          fi
+
+          # GHCR rejects uppercase; the repository owner has some.
+          repo="${REGISTRY}/$(echo "$REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+
+          {
+            echo "image_tag=$tag"
+            echo "image_repo=$repo"
+            echo "is_rollback=$rollback"
+          } >> "$GITHUB_OUTPUT"
+
+  # The full suite (typecheck, lint, Go tests, Next build). Skipped only for a
+  # rollback, where the images being re-applied were already verified when they
+  # were built.
+  verify:
+    needs: setup
+    if: needs.setup.outputs.is_rollback == 'false'
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    needs: [setup, verify]
+    if: needs.setup.outputs.is_rollback == 'false'
+    runs-on: ubuntu-latest
+    environment: ${{ needs.setup.outputs.environment }}
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - image: api
+            dockerfile: Dockerfile.api
+          - image: web
+            dockerfile: Dockerfile.web
+    steps:
+      - uses: actions/checkout@v4
+
+      # Required for cache-to: type=gha below: the runner's default `docker`
+      # buildx driver cannot export a build cache at all — only the
+      # container-based driver this action creates can.
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ needs.setup.outputs.image_repo }}-${{ matrix.image }}:${{ needs.setup.outputs.image_tag }}
+            ${{ needs.setup.outputs.image_repo }}-${{ matrix.image }}:production
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  deploy:
+    needs: [setup, verify, build]
+    # `always()` so a rollback (verify/build both skipped, by their own
+    # `if`) still reaches this job. The explicit `is_rollback == 'true'`
+    # branch is required, not just `build.result == 'skipped'`: a real
+    # (non-rollback) push where `verify` fails also leaves `build` skipped,
+    # and without this branch that would read the same as a legitimate
+    # rollback skip, so a failing test suite could still deploy.
+    if: >-
+      always() && needs.setup.result == 'success' &&
+      (needs.setup.outputs.is_rollback == 'true' ||
+      (needs.verify.result == 'success' && needs.build.result == 'success'))
+    runs-on: ubuntu-latest
+    environment: ${{ needs.setup.outputs.environment }}
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Open an SSH session to the VPS
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Ship the deployment files
+        env:
+          SSH_TARGET: ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}
+        run: |
+          set -euo pipefail
+          SSH="ssh -i ~/.ssh/id_deploy -o BatchMode=yes"
+
+          tar czf - docker-compose.app.yml scripts/deploy-app.sh |
+            $SSH "$SSH_TARGET" \
+              "mkdir -p /opt/multiblog && tar xzf - -C /opt/multiblog"
+
+          # The edge is shared, so a broken nginx template would take every
+          # blog down. App deploy rehearses the templates locally; this ships
+          # them every deploy so a change cannot be forgotten.
+          tar czf - docker-compose.edge.yml init-letsencrypt.sh nginx \
+                    scripts/render-nginx-sites.sh scripts/deploy-edge.sh \
+                    scripts/install-origin-cert.sh |
+            $SSH "$SSH_TARGET" "mkdir -p /opt/multiblog/edge && tar xzf - -C /opt/multiblog/edge"
+
+      - name: Apply
+        env:
+          IMAGE_TAG: ${{ needs.setup.outputs.image_tag }}
+          IMAGE_REPO: ${{ needs.setup.outputs.image_repo }}
+          SSH_TARGET: ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # The registry password arrives on STDIN, never as an argument.
+          printf '%s' "$REGISTRY_TOKEN" | ssh -i ~/.ssh/id_deploy -o BatchMode=yes "$SSH_TARGET" "
+            set -eu
+            docker login ghcr.io -u '${{ github.actor }}' --password-stdin
+            bash /opt/multiblog/edge/scripts/deploy-edge.sh
+            IMAGE_REPO='$IMAGE_REPO' bash /opt/multiblog/scripts/deploy-app.sh '$IMAGE_TAG'
+          "
+
+      - name: Smoke test
+        env:
+          DOMAIN: ${{ vars.SITE_DOMAIN }}
+        run: |
+          set -euo pipefail
+          # The public site root must render (200) and the API must resolve the
+          # Site for this hostname. -fsS fails on a non-200; the grep rejects a
+          # 200 that is not this application (a stray proxy, a parked page).
+          curl -fsS --max-time 20 --retry 5 --retry-delay 5 --retry-all-errors \
+            "https://$DOMAIN/" | tee /dev/stderr | grep -qE '<title>|StoryGrid|post'
+          curl -fsS --max-time 20 --retry 5 --retry-delay 5 --retry-all-errors \
+            "https://$DOMAIN/api/public/site" | tee /dev/stderr | grep -q '"site"'

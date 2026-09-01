@@ -1,0 +1,103 @@
+# MultiBlog — the EDGE: the one reverse proxy in front of every blog.
+#
+# One host has one pair of ports 80/443, so this stack owns them and the
+# application stack (docker-compose.app.yml) sits behind it with no published
+# ports at all. Each BLOG is a vhost resolved by its own hostname, rendered
+# from one template by scripts/render-nginx-sites.sh.
+#
+# Seism this is a single-multiblog-install layout, there is exactly one app
+# network join here; if you later run several multiblog environments on one
+# VPS, add one entry to SITES and one network per environment, exactly as
+# eis-aqui's edge does.
+#
+# Usage (from /opt/multiblog/edge on the host, with its own `.env`):
+#   docker compose -f docker-compose.edge.yml up -d
+#
+# Certificates: with the domains proxied by Cloudflare (the normal path) they
+# are Cloudflare ORIGIN certificates installed by scripts/install-origin-cert.sh
+# before the first `up`. Without Cloudflare, scripts/init-letsencrypt.sh issues
+# them. nginx will not start with `listen 443 ssl` pointing at a certificate
+# file that does not exist.
+
+name: multiblog-edge
+
+services:
+
+  # ── nginx (reverse proxy + TLS termination for every blog) ──────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # One entry per blog hostname: `id:domain:api_host:web_host`.
+      # The two host names are the compose network aliases set by
+      # docker-compose.app.yml (`api-<ENV_NAME>` / `web-<ENV_NAME>`).
+      # Each blog is one `Site` in the multiblog database bound to its own
+      # hostname; adding a blog means: an entry here, a hostname record in the
+      # app (or DNS wildcard), that blog's Site. Nothing in the template.
+      SITES: ${SITES}
+    volumes:
+      # The `http`-level half: cache zone, realip trust list, default server.
+      # In /etc/nginx/templates/, so the image's own entrypoint renders it —
+      # once, which is correct for a file that must appear exactly once.
+      - ./nginx/http.conf.template:/etc/nginx/templates/00-http.conf.template:ro
+      # The per-site half. Deliberately NOT under /etc/nginx/templates/: the
+      # image's entrypoint would render it once, and it has to be rendered
+      # once per blog. The script below does that.
+      - ./nginx/site.conf.template:/etc/nginx/site.conf.template:ro
+      - ./scripts/render-nginx-sites.sh:/docker-entrypoint.d/40-render-sites.sh:ro
+      # realip trust list (Cloudflare's published ranges) and TLS parameters.
+      # Plain includes, not templates: neither has a variable, and both are
+      # read by http.conf.template / site.conf.template respectively.
+      - ./nginx/cloudflare-ips.conf:/etc/nginx/cloudflare-ips.conf:ro
+      - ./nginx/tls.conf:/etc/nginx/tls.conf:ro
+      # The certificates — Cloudflare origin certificates by default, written
+      # into certbot's own `live/<domain>/` layout by install-origin-cert.sh
+      # so both mechanisms populate one place and the templates never have to
+      # know which one did the writing.
+      - ./certbot-data/conf:/etc/letsencrypt:ro
+      - ./certbot-data/www:/var/www/certbot:ro
+    networks:
+      - edge
+    # A periodic reload, so a renewed/replaced certificate is actually served
+    # without a restart. `entrypoint`/`command` split keeps the image's own
+    # entrypoint (which runs /docker-entrypoint.d/*) satisfied — see
+    # eis-aqui's docker-compose.edge.yml for the full rationale.
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "( while :; do sleep 6h; nginx -s reload; done ) &
+      exec /docker-entrypoint.sh nginx -g 'daemon off;'"
+
+  # ── certbot (Let's Encrypt) — OFF by default ────────────────────────────────
+  #
+  # The domains are proxied by Cloudflare, which terminates TLS for visitors;
+  # this origin presents Cloudflare ORIGIN certificates (15 years, no renewal,
+  # installed by scripts/install-origin-cert.sh). There is nothing for certbot
+  # to renew. It stays here behind a profile because it is the whole answer to
+  # "what if we turn the Cloudflare proxy off": the certificates land in the
+  # same directory and the path back is `./init-letsencrypt.sh`.
+  certbot:
+    profiles: ["letsencrypt"]
+    image: certbot/certbot:latest
+    restart: unless-stopped
+    volumes:
+      - ./certbot-data/conf:/etc/letsencrypt
+      - ./certbot-data/www:/var/www/certbot
+    entrypoint: >
+      /bin/sh -c "trap exit TERM;
+      while :; do
+        certbot renew --webroot -w /var/www/certbot;
+        sleep 12h & wait $${!};
+      done"
+
+networks:
+  # Shared with the app stack — and ONLY with it. `external: true` because the
+  # edge stack and the app stack are separate compose projects and neither may
+  # own it; scripts/deploy-app.sh creates it if it is missing.
+  edge:
+    name: multiblog-edge
+    external: true
+
+volumes: {}

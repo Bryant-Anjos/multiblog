@@ -1,0 +1,101 @@
+# MultiBlog — the application stack: PostgreSQL + API + web.
+#
+# Mirrors the deploy pattern used by the eis-aqui project (Phase 45): images
+# are built by GitHub Actions and pulled from GHCR by tag; nothing is ever
+# built on the VPS. Run from /opt/multiblog on the host:
+#
+#   cd /opt/multiblog  &&  docker compose -f docker-compose.app.yml up -d
+#
+# The directory's `.env` carries every secret (POSTGRES_PASSWORD, DATABASE_URL,
+# JWT_SECRET, ADMIN_PASSWORD, IMAGE_REPO, IMAGE_TAG) and is created once by
+# hand; a deploy never overwrites it.
+#
+# There is no `nginx` here: one host has one pair of ports 80/443, so the
+# reverse proxy is a single shared stack (docker-compose.edge.yml). Nothing in
+# this file publishes a port at all — the API and web only reach the internet
+# through nginx.
+
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-multiblog}
+      POSTGRES_USER: ${POSTGRES_USER:-multiblog}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in this environment's .env}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── API (Go) ────────────────────────────────────────────────────────────────
+  api:
+    image: ${IMAGE_REPO:?IMAGE_REPO is required, e.g. ghcr.io/bryant-anjos/multiblog}-api:${IMAGE_TAG:?IMAGE_TAG is required — pass the tag being deployed}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required in this environment's .env}
+      PORT: "8080"
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required in this environment's .env}
+      # The web is served from the same origin as the API, so CORS is moot in
+      # production; the admin UI calls the API by relative path. This value is
+      # what the API echoes in Access-Control-Allow-Origin and is not
+      # load-bearing behind nginx — kept configurable for completeness.
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required in this environment's .env}
+    networks:
+      internal:
+      edge:
+        aliases:
+          - api
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ── Web (Next.js SSR) ────────────────────────────────────────────────────────
+  web:
+    image: ${IMAGE_REPO:?IMAGE_REPO is required}-web:${IMAGE_TAG:?IMAGE_TAG is required}
+    restart: unless-stopped
+    environment:
+      # Server-side fetches call the API over this environment's own internal
+      # network (see apps/web/src/lib/api.ts: it reads API_URL first). It must
+      # be the service name, NOT the edge alias: SSR traffic must not leave
+      # the stack it belongs to.
+      API_URL: http://api:8080
+      # NEXT_PUBLIC_* is baked into the client bundle at BUILD time. The admin
+      # UI and SiteContext default to a same-origin base when it is empty, and
+      # nginx proxies `/api/*` to the api container — so leaving it empty is
+      # correct for a single-origin deployment. Set it only when the API must
+      # live on a different origin. (Server-side SSR fetches use API_URL above,
+      # never this.)
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+    networks:
+      internal:
+      edge:
+        aliases:
+          - web
+    depends_on:
+      api:
+        condition: service_healthy
+
+networks:
+  # Private to this environment: db, api and web talk over it and nothing else
+  # can join.
+  internal:
+
+  # Shared with the edge proxy — and ONLY with the edge proxy.
+  # `external: true` because the edge stack and this stack are separate
+  # compose projects and neither may own it; scripts/deploy-app.sh creates it
+  # if it is missing.
+  edge:
+    name: multiblog-edge
+    external: true
+
+volumes:
+  db_data:

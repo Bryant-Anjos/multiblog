@@ -1,4 +1,8 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+// In production the API is served on the same origin by nginx (`/api/*` →
+// the `api` container), so the default is a same-origin relative base. Set
+// NEXT_PUBLIC_API_URL explicitly only when the API lives on another origin
+// (e.g. local dev with the API on :8080).
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;

@@ -1,0 +1,40 @@
+# MultiBlog API image. Built at the monorepo root (context: .) by CI and
+# pulled on the VPS by tag — nothing is ever built on the host. Mirrors the
+# original apps/api/Dockerfile, but with the build context at the repo root so
+# `docker build -f Dockerfile.api .` works from GH Actions.
+#
+# The Go module is self-contained under apps/api, so the two stages copy from
+# there exactly.
+
+# ── Build stage ─────────────────────────────────────────────────────────────
+FROM golang:1.22-alpine AS builder
+
+WORKDIR /app
+
+RUN apk add --no-cache ca-certificates
+
+COPY apps/api/go.mod apps/api/go.sum ./
+RUN go mod download
+
+COPY apps/api/ .
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/server ./cmd/server
+
+# ── Run stage ───────────────────────────────────────────────────────────────
+FROM alpine:latest
+
+RUN apk add --no-cache ca-certificates
+
+WORKDIR /app
+COPY --from=builder /app/server ./server
+COPY --from=builder /app/migrations ./migrations
+
+ENV PORT=8080
+EXPOSE 8080
+
+# /api/health checks the database and answers 503 when it is unreachable, so
+# this is what lets docker compose's `depends_on: condition: service_healthy`
+# wait for a service that actually works, not merely one that booted.
+HEALTHCHECK --interval=10s --timeout=5s --start-period=15s --retries=5 \
+  CMD wget -q -O - http://127.0.0.1:${PORT:-8080}/health >/dev/null 2>&1 || exit 1
+
+CMD ["./server"]

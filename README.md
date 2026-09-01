@@ -42,7 +42,8 @@ multiblog/
 - **API**: Go + `gorilla/mux` + `lib/pq` + `golang-jwt` + `golang-migrate`, PostgreSQL 16
 - **Web**: Next.js 14 App Router, React Server Components, `react-markdown` + `remark-gfm`
 - **Database**: PostgreSQL 16 (volume-persisted)
-- **Deploy**: Docker Compose (3 services)
+- **Deploy**: Docker Compose (dev `docker-compose.yml`) + CI/CD to a Hostinger VPS
+  (see [`docs/deployment.md`](docs/deployment.md))
 
 ### Public hostname resolution
 

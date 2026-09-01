@@ -1,0 +1,90 @@
+name: CI
+
+# Pure verification — no deploy secrets required. See docs/deployment.md.
+# Reusable (`workflow_call`): deploy.yml calls it as its first job, so nothing
+# is ever built or published without this passing.
+#
+# `push` to `main` reports but does not block anything here; `pull_request`
+# is a free safety net. `workflow_call` is what deploy.yml depends on.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    # The Go integration suite (integration_test.go) runs against real
+    # PostgreSQL. Without schema present it never gets past the first query,
+    # so a Postgres service is spun up and migrated before the tests run.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: multiblog
+          POSTGRES_USER: multiblog
+          POSTGRES_PASSWORD: multiblog
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U multiblog"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── API: Go ──────────────────────────────────────────────────────────
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache-dependency-path: apps/api/go.sum
+
+      - name: Apply migrations to the CI database
+        # Uses the same golang-migrate scheme the app runs at startup. The
+        # service exposes 5432 on the runner.
+        run: |
+          docker run --rm --network=host \
+            -v "$PWD/apps/api/migrations:/migrations" \
+            migrate/migrate -path /migrations \
+            -database "postgres://multiblog:multiblog@localhost:5432/multiblog?sslmode=disable" \
+            up
+
+      - name: Go vet + build
+        run: |
+          go vet ./...
+          go build ./cmd/server
+        working-directory: apps/api
+
+      - name: Go integration tests
+        env:
+          TEST_DATABASE_URL: postgres://multiblog:multiblog@localhost:5432/multiblog?sslmode=disable
+        run: go test ./...
+        working-directory: apps/api
+
+      # ── Web: Next.js ──────────────────────────────────────────────────────
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: apps/web
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+        working-directory: apps/web
+
+      - name: Lint
+        run: npm run lint
+        working-directory: apps/web
+
+      - name: Build
+        run: npm run build
+        working-directory: apps/web

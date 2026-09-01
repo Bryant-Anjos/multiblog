@@ -45,7 +45,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/api/admin/sites/${siteId}`, {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/admin/sites/${siteId}`, {
       headers: {
         ...(localStorage.getItem("admin_token") ? { Authorization: `Bearer ${localStorage.getItem("admin_token")}` } : {}),
       },

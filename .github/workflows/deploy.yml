@@ -11,8 +11,10 @@ name: Deploy
 # ones can be re-applied later, which is what makes rollback a one-click
 # `workflow_dispatch` with an older tag instead of a revert commit.
 #
-# Everything host-side lives in scripts/deploy-app.sh and scripts/deploy-edge.sh
-# so that a manual deploy runs the exact same sequence as this workflow.
+# Everything host-side for the app lives in scripts/deploy-app.sh, so a manual
+# deploy runs the exact same sequence as this workflow. The reverse proxy (the
+# shared "edge", nginx) lives in its own repo (/opt/edge) and is NOT deployed
+# here — see docs/deployment.md → "The edge".
 #
 # Required per GitHub Environment (the `production` environment):
 #   secrets  SSH_PRIVATE_KEY, SSH_KNOWN_HOSTS
@@ -169,25 +171,21 @@ jobs:
           SSH_TARGET: ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}
         run: |
           set -euo pipefail
-          SSH="ssh -i ~/.ssh/id_deploy -o BatchMode=yes"
-
+          # Only the application stack files. The reverse proxy (nginx) no
+          # longer lives in this repo: it is a shared "edge" that fronts every
+          # site this host serves and is owned by its own repo/deploy
+          # (docs/deployment.md → "The edge"). It is NOT shipped or applied by
+          # this workflow.
           tar czf - docker-compose.app.yml scripts/deploy-app.sh |
             $SSH "$SSH_TARGET" \
               "mkdir -p /opt/multiblog && tar xzf - -C /opt/multiblog"
-
-          # The edge is shared, so a broken nginx template would take every
-          # blog down. App deploy rehearses the templates locally; this ships
-          # them every deploy so a change cannot be forgotten.
-          tar czf - docker-compose.edge.yml init-letsencrypt.sh nginx \
-                    scripts/render-nginx-sites.sh scripts/deploy-edge.sh \
-                    scripts/install-origin-cert.sh |
-            $SSH "$SSH_TARGET" "mkdir -p /opt/multiblog/edge && tar xzf - -C /opt/multiblog/edge"
 
       - name: Apply
         env:
           IMAGE_TAG: ${{ needs.setup.outputs.image_tag }}
           IMAGE_REPO: ${{ needs.setup.outputs.image_repo }}
           SSH_TARGET: ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}
+          SITE_DOMAIN: ${{ vars.SITE_DOMAIN }}
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
@@ -195,7 +193,13 @@ jobs:
           printf '%s' "$REGISTRY_TOKEN" | ssh -i ~/.ssh/id_deploy -o BatchMode=yes "$SSH_TARGET" "
             set -eu
             docker login ghcr.io -u '${{ github.actor }}' --password-stdin
-            bash /opt/multiblog/edge/scripts/deploy-edge.sh
+            # The edge is deployed by the shared edge repo. Before bringing up
+            # this app, fail fast if the shared edge is not already configured
+            # to route SITE_DOMAIN: deploying an app nothing proxies to is a
+            # silent outage. (The smoke test below would catch it later; this
+            # catches it before the stack is touched.)
+            grep -qw '$SITE_DOMAIN' /opt/edge/.env \
+              || { echo "multiblog edge not configured for $SITE_DOMAIN in /opt/edge/.env (SITES)" >&2; exit 1; }
             IMAGE_REPO='$IMAGE_REPO' bash /opt/multiblog/scripts/deploy-app.sh '$IMAGE_TAG'
           "
 

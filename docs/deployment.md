@@ -15,7 +15,7 @@ is the **shared edge** — it is not part of this repo; it lives in its own
 ```
               *.briam.cloud (Cloudflare proxy, terminates TLS for visitors)
                                    │
-                   nginx edge  (the edge repo, /opt/edge)
+                   nginx edge  (the edge repo — `vps-edge` on GitHub — /opt/edge)
                   TCP 80/443, one vhost per blog hostname
                      /api/*  →  api:8080
                      everything else → web:3000

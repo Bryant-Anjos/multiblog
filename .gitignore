@@ -17,6 +17,8 @@ tsconfig.tsbuildinfo
 /bin/
 *.test
 coverage.out
+# `go build ./cmd/server` with no -o names the binary after the package dir.
+apps/api/server
 
 # Environment — never commit real env files (keep .env.example)
 .env

@@ -171,6 +171,8 @@ jobs:
           SSH_TARGET: ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}
         run: |
           set -euo pipefail
+          SSH="ssh -i ~/.ssh/id_deploy -o BatchMode=yes"
+
           # Only the application stack files. The reverse proxy (nginx) no
           # longer lives in this repo: it is a shared "edge" that fronts every
           # site this host serves and is owned by its own repo/deploy
@@ -198,7 +200,13 @@ jobs:
             # to route SITE_DOMAIN: deploying an app nothing proxies to is a
             # silent outage. (The smoke test below would catch it later; this
             # catches it before the stack is touched.)
-            grep -qw '$SITE_DOMAIN' /opt/edge/.env \
+            # Matched WITH the surrounding colons of a SITES entry
+            # (`id:domain:api_host:...`), and with -F so the dots are not
+            # regex. `grep -w` was too loose in both directions: it treats
+            # `.` and `-` as non-word characters, so `blog-01.briam.cloud`
+            # would also match inside a longer hostname that merely contains
+            # it.
+            grep -qF ':$SITE_DOMAIN:' /opt/edge/.env \
               || { echo "multiblog edge not configured for $SITE_DOMAIN in /opt/edge/.env (SITES)" >&2; exit 1; }
             IMAGE_REPO='$IMAGE_REPO' bash /opt/multiblog/scripts/deploy-app.sh '$IMAGE_TAG'
           "

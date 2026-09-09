@@ -67,7 +67,17 @@ func main() {
 		w.Write([]byte(`{"status":"ok"}`))
 	}).Methods(http.MethodGet)
 
-	router.HandleFunc("/auth/login", authHandler.Login).Methods(http.MethodPost)
+	// Under /api/, like every other real route below (admin, public) — NOT
+	// bare, unlike /health above. /health is Docker-internal only
+	// (Dockerfile.api's own healthcheck, deploy-app.sh's status read), but
+	// login is a real external call from the browser, and the shared edge's
+	// nginx only proxies /api/* to this container; everything else goes to
+	// the Next.js web container instead. A bare /auth/login here 404'd as
+	// HTML from Next.js on every login attempt — the login page rendered
+	// fine (that path never left the web container), but the request the
+	// form submitted did, and there was nothing at /auth/login on that side.
+	// Caught live, first real login attempt, 2026-09-10.
+	router.HandleFunc("/api/auth/login", authHandler.Login).Methods(http.MethodPost)
 
 	admin := router.PathPrefix("/api/admin").Subrouter()
 	admin.Use(auth.Authenticate)

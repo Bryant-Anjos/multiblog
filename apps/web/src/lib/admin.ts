@@ -34,7 +34,11 @@ export async function adminFetch(path: string, options: RequestInit = {}) {
 }
 
 export async function login(password: string): Promise<void> {
-  const res = await fetch(`${API_URL}/auth/login`, {
+  // /api/, matching main.go's registration — everything the API exposes
+  // externally lives under /api/, since that is the one prefix nginx routes
+  // to this container in production; a bare path falls through to the web
+  // container's own 404 instead.
+  const res = await fetch(`${API_URL}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ password }),

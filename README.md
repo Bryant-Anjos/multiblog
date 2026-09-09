@@ -67,7 +67,7 @@ docker compose up -d --build
 | API | `localhost:8080` (`/health`) |
 | Web | `localhost:3000` |
 
-Default seeded sites (see `migrations/000002_seed.up.sql`):
+Default seeded sites (see `migrations/000003_seed.up.sql`):
 
 - **My Blog** → `localhost` and `meublog.com.br` (3 posts, an About page, no stories)
 - **The Chronicles** → `diario.localhost` (1 story: 2 books / 3 chapters)

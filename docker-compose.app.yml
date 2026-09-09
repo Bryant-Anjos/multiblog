@@ -51,9 +51,22 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required in this environment's .env}
     networks:
       internal:
+      # `api-multiblog`, not the bare `api` this used to be: Compose auto-adds
+      # the SERVICE NAME itself as a network alias on every network a service
+      # joins, in addition to anything listed here — and eis-aqui's `api`
+      # service does the exact same thing on ITS edge networks. The shared
+      # edge nginx is attached to every project's edge network at once, so a
+      # bare `api`/`web` alias collides across projects: Docker's embedded
+      # resolver returned ONE of the two ambiguously, and multiblog.briam.cloud
+      # served eis-aqui's admin panel instead of its own (caught live,
+      # 2026-09-09, right after the edge started routing multiblog.briam.cloud
+      # at all). The `internal` network above is unaffected — nothing outside
+      # this stack ever joins it, so the bare name there is fine; it is only
+      # the edge network, shared with strangers, that needs a name unique
+      # across every project on the host.
       edge:
         aliases:
-          - api
+          - api-multiblog
     depends_on:
       db:
         condition: service_healthy
@@ -77,9 +90,10 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
     networks:
       internal:
+      # web-multiblog — see the identical note on `api`'s edge alias above.
       edge:
         aliases:
-          - web
+          - web-multiblog
     depends_on:
       api:
         condition: service_healthy

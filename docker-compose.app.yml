@@ -88,6 +88,12 @@ services:
       # live on a different origin. (Server-side SSR fetches use API_URL above,
       # never this.)
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+      # The one hostname (if any) that gets the admin panel at its root, with
+      # `/admin` never appearing in the URL — src/middleware.ts rewrites every
+      # path under this Host to `/admin/...` transparently. Unset by default
+      # (inert); set to the domain meant as this instance's management root,
+      # e.g. multiblog.briam.cloud, in that environment's own .env.
+      ADMIN_HOSTNAME: ${ADMIN_HOSTNAME:-}
     networks:
       internal:
       # web-multiblog — see the identical note on `api`'s edge alias above.

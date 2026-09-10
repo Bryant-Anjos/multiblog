@@ -206,8 +206,18 @@ jobs:
             # `.` and `-` as non-word characters, so `blog-01.briam.cloud`
             # would also match inside a longer hostname that merely contains
             # it.
+            # Single-quoted, like eis-aqui's equivalent line — this whole
+            # remote command is itself one double-quoted string (opens at
+            # `ssh ... "` above), so a DOUBLE-quoted echo message here closes
+            # that outer string early at its own first `"`. Everything after
+            # — including the literal `(SITES)` — then lands as bare,
+            # unquoted text back in the OUTER (runner) shell, where a bare
+            # `(` is a syntax error. Caught live on the very first real run:
+            # "line 18: syntax error near unexpected token `('" (Deploy
+            # workflow run 34419096067) — this file had never executed
+            # before, since the repo had no GitHub remote until today.
             grep -qF ':$SITE_DOMAIN:' /opt/edge/.env \
-              || { echo "multiblog edge not configured for $SITE_DOMAIN in /opt/edge/.env (SITES)" >&2; exit 1; }
+              || { echo 'multiblog edge not configured in /opt/edge/.env (SITES)' >&2; exit 1; }
             IMAGE_REPO='$IMAGE_REPO' bash /opt/multiblog/scripts/deploy-app.sh '$IMAGE_TAG'
           "
 
@@ -216,10 +226,26 @@ jobs:
           DOMAIN: ${{ vars.SITE_DOMAIN }}
         run: |
           set -euo pipefail
-          # The public site root must render (200) and the API must resolve the
-          # Site for this hostname. -fsS fails on a non-200; the grep rejects a
-          # 200 that is not this application (a stray proxy, a parked page).
+          # SITE_DOMAIN here is the ADMIN domain (src/middleware.ts rewrites
+          # everything under it to /admin — see docs/deployment.md), and by
+          # design no blog site is ever registered on it. The original
+          # /api/public/site check assumed a real blog domain and 404s here
+          # unconditionally ({"error":"no site configured..."} , no "site"
+          # key) — caught live trying to run this workflow for the first
+          # time, right after fixing an unrelated quoting bug in the
+          # previous step.
+          #
+          # Checking root + a real API round trip instead: a wrong password
+          # still reaching /api/auth/login and getting a genuine 401 proves
+          # the request reached the Go handler — exactly what BOTH bugs
+          # found live on 2026-09-09/10 (the network-alias collision
+          # routing this domain to eis-aqui's container, and /auth/login
+          # missing the /api/ prefix and 404ing as Next.js HTML) would have
+          # broken instead.
           curl -fsS --max-time 20 --retry 5 --retry-delay 5 --retry-all-errors \
-            "https://$DOMAIN/" | tee /dev/stderr | grep -qE '<title>|StoryGrid|post'
-          curl -fsS --max-time 20 --retry 5 --retry-delay 5 --retry-all-errors \
-            "https://$DOMAIN/api/public/site" | tee /dev/stderr | grep -q '"site"'
+            "https://$DOMAIN/" | tee /dev/stderr | grep -qE '<title>.*Admin.*Multiblog'
+          code=$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' \
+            -X POST "https://$DOMAIN/api/auth/login" \
+            -H 'Content-Type: application/json' \
+            -d '{"password":"smoke-test-wrong-password-0000"}')
+          [ "$code" = "401" ] || { echo "expected 401 from /api/auth/login, got $code" >&2; exit 1; }

@@ -66,6 +66,25 @@ done
 
 echo "$IMAGE_TAG" > .deployed-tag
 
+# Persisted into .env, not left as this script's own exported variables:
+# `docker compose` has to interpolate `image:` in docker-compose.app.yml
+# (IMAGE_REPO/IMAGE_TAG) to parse the file AT ALL, for every subcommand, not
+# just `up`. Without this, a `docker compose exec api ...` typed by hand
+# later fails with "IMAGE_REPO is required" even though the app is running
+# fine, because compose reads `.env` in its working directory automatically
+# but never inherits a variable this script only exported for itself.
+# Idempotent: replaces the line if a previous deploy already wrote one,
+# appends it otherwise. Same gap found live in the sibling cv-editor project,
+# 2026-09-10, running its equivalent one-off command right after a deploy.
+for var in IMAGE_REPO IMAGE_TAG; do
+  value="$(eval echo "\$$var")"
+  if grep -q "^$var=" .env; then
+    sed -i "s|^$var=.*|$var=$value|" .env
+  else
+    echo "$var=$value" >> .env
+  fi
+done
+
 # Only dangling layers, never `-a`: the previous tag has to stay pullable
 # locally for a rollback that does not depend on the network.
 docker image prune -f >/dev/null

@@ -192,32 +192,32 @@ jobs:
         run: |
           set -euo pipefail
           # The registry password arrives on STDIN, never as an argument.
+          #
+          # Everything below the next line, up to the closing quote at the
+          # very end of this step, is ONE double-quoted bash string (the
+          # remote command handed to ssh) rather than a normal script this
+          # editor's syntax highlighting suggests. Inside it, only a
+          # backslash-escaped double quote or a single quote is safe to put
+          # in a comment or message: a bare double quote closes the string
+          # early (everything after becomes unquoted text the OUTER, runner
+          # shell parses on its own), and a backtick opens command
+          # substitution and needs an exact matching second backtick or the
+          # whole thing fails to parse at all. Two real, different failures
+          # of exactly that kind happened here the first two times this
+          # workflow ever ran for real (see git log on this file, 2026-09-10)
+          # before this comment existed to warn about it. Keep every line
+          # inside the quoted block free of both characters, full stop --
+          # move explanation out here instead, like this comment already is.
+          #
+          # The guard below fails fast if the shared edge is not already
+          # configured to route SITE_DOMAIN, before the app stack is
+          # touched -- deploying an app nothing proxies to would otherwise be
+          # a silent outage, caught only later by the smoke test.
           printf '%s' "$REGISTRY_TOKEN" | ssh -i ~/.ssh/id_deploy -o BatchMode=yes "$SSH_TARGET" "
             set -eu
             docker login ghcr.io -u '${{ github.actor }}' --password-stdin
-            # The edge is deployed by the shared edge repo. Before bringing up
-            # this app, fail fast if the shared edge is not already configured
-            # to route SITE_DOMAIN: deploying an app nothing proxies to is a
-            # silent outage. (The smoke test below would catch it later; this
-            # catches it before the stack is touched.)
-            # Matched WITH the surrounding colons of a SITES entry
-            # (`id:domain:api_host:...`), and with -F so the dots are not
-            # regex. `grep -w` was too loose in both directions: it treats
-            # `.` and `-` as non-word characters, so `blog-01.briam.cloud`
-            # would also match inside a longer hostname that merely contains
-            # it.
-            # Single-quoted, like eis-aqui's equivalent line — this whole
-            # remote command is itself one double-quoted string (opens at
-            # `ssh ... "` above), so a DOUBLE-quoted echo message here closes
-            # that outer string early at its own first `"`. Everything after
-            # — including the literal `(SITES)` — then lands as bare,
-            # unquoted text back in the OUTER (runner) shell, where a bare
-            # `(` is a syntax error. Caught live on the very first real run:
-            # "line 18: syntax error near unexpected token `('" (Deploy
-            # workflow run 34419096067) — this file had never executed
-            # before, since the repo had no GitHub remote until today.
             grep -qF ':$SITE_DOMAIN:' /opt/edge/.env \
-              || { echo 'multiblog edge not configured in /opt/edge/.env (SITES)' >&2; exit 1; }
+              || { echo 'multiblog edge not configured in /opt/edge/.env, see SITES' >&2; exit 1; }
             IMAGE_REPO='$IMAGE_REPO' bash /opt/multiblog/scripts/deploy-app.sh '$IMAGE_TAG'
           "
 

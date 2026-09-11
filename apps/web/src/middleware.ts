@@ -20,9 +20,21 @@ const ADMIN_HOSTNAME = process.env.ADMIN_HOSTNAME;
 // Left untouched even on the admin host: `/admin/*` itself (already correct,
 // rewriting it would prefix twice), Next.js internals, and the metadata
 // routes (`app/robots.ts`/`app/sitemap.ts`) — those answer per-Host already
-// and gain nothing from being admin content.
-const PASSTHROUGH_PREFIXES = ["/admin", "/_next", "/api"];
+// and gain nothing from being admin content. `/icons` is the PWA's own
+// public/ directory (real files, not a route) and needs the same treatment.
+const PASSTHROUGH_PREFIXES = ["/admin", "/_next", "/api", "/icons"];
 const PASSTHROUGH_EXACT = new Set(["/robots.txt", "/sitemap.xml", "/favicon.ico"]);
+
+// The PWA build output (manifest.webmanifest from app/manifest.ts, and
+// next-pwa's generated sw.js/workbox-*.js in public/) is also real files at
+// the root, not admin content — same bug class as /icons above, just not
+// expressible as a fixed prefix since the hash in workbox-<hash>.js changes
+// every build. Found live 2026-09-10: the rewrite silently 404'd every PWA
+// asset on the admin domain even though `next build` produced them and the
+// deploy's own smoke test (root + login only) never touched these paths.
+function isPwaAsset(pathname: string): boolean {
+  return pathname === "/manifest.webmanifest" || /^\/workbox-.*\.js$/.test(pathname) || pathname === "/sw.js";
+}
 
 export function middleware(request: NextRequest) {
   const host = request.headers.get("host") || "";
@@ -33,7 +45,8 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (
     PASSTHROUGH_EXACT.has(pathname) ||
-    PASSTHROUGH_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+    PASSTHROUGH_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`)) ||
+    isPwaAsset(pathname)
   ) {
     return NextResponse.next();
   }
